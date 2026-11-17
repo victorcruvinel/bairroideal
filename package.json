@@ -1,0 +1,15 @@
+{
+  "name": "bairro-ideal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node test/servidor.mjs 8080",
+    "dev:planilha": "node test/servidor.mjs 8080 --planilha",
+    "test": "node --test test/*.test.mjs",
+    "fotos": "node test/fotos.mjs",
+    "deploy": "npx wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.40.0"
+  }
+}

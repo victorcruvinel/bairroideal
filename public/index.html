@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Bairro Ideal · monte a maquete do seu bairro</title>
+  <meta name="description" content="Monte maquetes de bairros em 3D: ruas, casas, praças, escolas, árvores e pessoas. Compare o bairro ideal com o bairro carente e conte a história de cada um.">
+  <meta name="theme-color" content="#1f6f50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Bairro Ideal">
+  <meta property="og:title" content="Bairro Ideal">
+  <meta property="og:description" content="Monte maquetes de bairros em 3D e compare o bairro ideal com o bairro carente.">
+  <meta property="og:image" content="/img/compartilhar.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/img/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/icone-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="abertura" class="abertura" aria-hidden="true">
+    <canvas id="abertura-cena"></canvas>
+    <div class="abertura-logo">
+      <div class="abertura-nome"><span>B</span><span>a</span><span>i</span><span>r</span><span>r</span><span>o</span><span class="esp"> </span><span>I</span><span>d</span><span>e</span><span>a</span><span>l</span></div>
+      <p class="abertura-sub">Monte o bairro dos seus sonhos</p>
+    </div>
+    <button class="abertura-pular">Pular ›</button>
+  </div>
+  <div id="app" class="app"></div>
+  <noscript><p style="padding:24px;font-family:sans-serif">O Bairro Ideal precisa do JavaScript ligado para funcionar.</p></noscript>
+  <script type="module" src="/js/protecao.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
