@@ -20,6 +20,7 @@ export const servidor = http.createServer(async (req, res) => {
   if (url.pathname === '/__mudar-versao') { versaoTeste = 'v' + Date.now(); res.writeHead(200); return res.end(versaoTeste); } // só no teste: simula uma publicação nova
   if (url.pathname === '/versao.json') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ versao: versaoTeste, nuvem: !!gas })); }
   if (url.pathname === '/sw.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end("self.VERSAO='dev';importScripts('/sw-base.js');"); }
+  if (url.pathname === '/index.html') { res.writeHead(307, { location: '/' }); return res.end(); } // igual ao Cloudflare
   let f = path.join(raiz, decodeURIComponent(url.pathname)); if (!f.startsWith(raiz)) { res.writeHead(403); return res.end(); }
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) f = path.join(raiz, 'index.html');
   res.writeHead(200, { 'content-type': tipos[path.extname(f)] || 'application/octet-stream', 'cache-control': 'no-store' }); fs.createReadStream(f).pipe(res);

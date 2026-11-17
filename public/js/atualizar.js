@@ -29,7 +29,8 @@ async function conferir() {
   if (v !== versaoAtual) atualizarAgora();
 }
 export function iniciarAtualizacoes() {
-  if ('serviceWorker' in navigator && !['localhost', '127.0.0.1'].includes(location.hostname)) {
+  let teste = false; try { teste = localStorage.getItem('bi:sw-teste') === '1'; } catch { /* */ }
+  if ('serviceWorker' in navigator && (teste || !['localhost', '127.0.0.1'].includes(location.hostname))) {
     navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
       reg.update().catch(() => {});
       reg.addEventListener('updatefound', () => { const w = reg.installing; w && w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) atualizarAgora(); }); });

@@ -73,6 +73,7 @@ node test/interacoes.mjs       # usa o editor com o mouse (servidor na 8090)
 node test/login.mjs            # login por código, nuvem e convites (sobe o servidor sozinho na 8091)
 node test/passeio-toque.mjs    # passeio com o dedo no iPad e no iPhone (servidor na 8090)
 node test/atualizar-instalar.mjs  # atualização forçada e convite para instalar (sobe o servidor na 8092)
+node test/service-worker.mjs   # service worker de verdade: recarregar, /index.html redirecionado, sem internet (8093)
 node test/gerar-imagens.mjs    # refaz os ícones e a imagem de compartilhar
 ```
 Pastas: `public/` (site), `public/js/telas/` (cada tela), `worker/` (Cloudflare), `apps-script/` (planilha), `test/`, `docs/modelos/` (os modelos visuais aprovados).
