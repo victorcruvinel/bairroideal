@@ -341,7 +341,8 @@ img { -webkit-user-drag: none; }
   .hist-leg { padding: 12px 14px; gap: 10px; border-radius: 20px; } .hist-coruja { width: 54px; height: 54px; } .hist-coruja svg { width: 44px; height: 44px; }
   .hist-txt h2 { font-size: 19px; } .hist-txt p { font-size: 15px; }
   .hist-seta { width: 46px; height: 46px; font-size: 24px; top: 38%; }
-  .hist-nome { font-size: 20px; top: calc(36px + var(--seguro-t)); }
+  .hist-topo { flex-wrap: wrap; gap: 10px; } .hist-acoes { margin-left: auto; } .hist-prog { order: 2; flex-basis: 100%; }
+  .hist-nome { font-size: 20px; top: calc(92px + var(--seguro-t)); left: 16px; right: 16px; flex-wrap: wrap; }
 }
 
 /* =================================================================== PASSEIO */
