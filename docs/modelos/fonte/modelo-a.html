@@ -1,0 +1,93 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--papel:#f6efe2;--tinta:#2b2a33;--verde:#1f6f50;--sol:#ffc93c;--coral:#ff7a59;--linha:#e6dcc8;--card:#fffaf1}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;background:var(--papel);background-image:radial-gradient(#e2d6bf 1.2px,transparent 1.2px);background-size:22px 22px;font-family:Nunito,sans-serif;color:var(--tinta);display:flex;flex-direction:column;overflow:hidden}
+h1,h2,h3,.f{font-family:Fredoka,sans-serif}
+.topo{height:76px;display:flex;align-items:center;gap:18px;padding:0 24px}
+.logo{display:flex;align-items:center;gap:10px;font-family:Fredoka;font-weight:700;font-size:26px;color:var(--verde)}
+.logo .m{width:44px;height:44px;border-radius:14px;background:var(--verde);display:grid;place-items:center;box-shadow:0 4px 0 #14513a}
+.nome{background:var(--card);border:2px solid var(--linha);border-radius:999px;padding:8px 16px;font-weight:800;display:flex;gap:8px;align-items:center}
+.nome small{color:#8a8172;font-weight:700}
+.abas{margin:0 auto;display:flex;background:var(--card);border:2px solid var(--linha);border-radius:16px;padding:4px;gap:4px}
+.abas b{font-family:Fredoka;font-weight:600;padding:9px 18px;border-radius:12px;font-size:15px;color:#6b6457;display:flex;gap:7px;align-items:center}
+.abas b.on{background:var(--verde);color:#fff;box-shadow:0 3px 0 #14513a}
+.bt{border:2px solid var(--linha);background:var(--card);border-radius:12px;padding:9px 14px;font-weight:800;display:flex;gap:6px;align-items:center}
+.bt.p{background:var(--sol);border-color:#e9ad12;box-shadow:0 3px 0 #d79c00}
+.av{width:40px;height:40px;border-radius:50%;background:var(--coral);color:#fff;display:grid;place-items:center;font-family:Fredoka;font-weight:700}
+.corpo{flex:1;display:grid;grid-template-columns:318px 1fr 310px;gap:18px;padding:0 24px 22px;min-height:0}
+.painel{background:var(--card);border:2px solid var(--linha);border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.busca{border:2px solid var(--linha);border-radius:14px;padding:10px 14px;color:#9a907e;font-weight:700;background:#fff}
+.cats{display:flex;flex-wrap:wrap;gap:6px}
+.cats span{font-family:Fredoka;font-weight:600;font-size:13px;padding:6px 11px;border-radius:999px;background:#f0e7d6;color:#6b6457}
+.cats span.on{background:var(--coral);color:#fff}
+.grade{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;overflow:hidden}
+.pc{background:#fff;border:2px solid var(--linha);border-radius:16px;height:112px;display:flex;flex-direction:column;align-items:center;padding:4px 2px 6px}
+.pc div{flex:1;width:100%;min-height:0}.pc svg{display:block}
+.pc i{font-style:normal;font-size:12px;font-weight:800;color:#5b5446}
+.pc.on{border-color:var(--verde);box-shadow:0 0 0 3px #1f6f5033}
+.mesa{position:relative;border-radius:28px;background:radial-gradient(ellipse at 50% 45%,#fff8ea,#efe3cb 75%);border:2px solid var(--linha);overflow:hidden}
+.mesa svg{position:absolute;inset:0}
+.flut{position:absolute;display:flex;gap:8px}
+.ferr{left:50%;bottom:18px;transform:translateX(-50%);background:var(--tinta);padding:7px;border-radius:18px}
+.ferr b{white-space:nowrap;color:#fff;font-family:Fredoka;font-weight:500;padding:9px 14px;border-radius:12px;font-size:14px;display:flex;gap:6px;align-items:center}
+.ferr b.on{background:var(--sol);color:var(--tinta)}
+.vista{right:16px;top:16px;flex-direction:column}
+.red{width:42px;height:42px;border-radius:14px;background:#fff;border:2px solid var(--linha);display:grid;place-items:center;font-weight:800;font-size:18px}
+.dica{left:16px;top:16px;background:#fff;border:2px dashed var(--verde);border-radius:14px;padding:9px 13px;font-weight:700;font-size:13.5px;color:var(--verde)}
+.tipo{display:flex;gap:6px}
+.tipo span{white-space:nowrap;flex:1;text-align:center;padding:9px;border-radius:12px;font-family:Fredoka;font-weight:600;font-size:14px;background:#f0e7d6;color:#6b6457}
+.tipo span.on{background:#d8f3dc;color:var(--verde);border:2px solid #95d5b2}
+.hist{background:#fff;border:2px solid var(--linha);border-radius:16px;padding:12px;font-size:13.5px;line-height:1.45;color:#4b463c}
+.hist b{display:block;font-family:Fredoka;font-weight:600;color:var(--tinta);margin-bottom:4px;font-size:15px}
+.term .l{display:flex;justify-content:space-between;font-weight:800;font-size:13px;margin:7px 0 4px}
+.barra{height:10px;background:#efe6d4;border-radius:9px;overflow:hidden}.barra i{display:block;height:100%;border-radius:9px}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.nums div{background:#fff;border:2px solid var(--linha);border-radius:12px;text-align:center;padding:6px 0;font-size:11px;font-weight:800;color:#8a8172}
+.nums b{display:block;font-family:Fredoka;font-size:20px;color:var(--tinta)}
+.selo{position:absolute;left:16px;top:66px;background:var(--verde);color:#fff;font-family:Fredoka;font-weight:600;padding:8px 16px;border-radius:999px;box-shadow:0 4px 0 #14513a;font-size:15px}
+</style></head><body>
+<div class="topo">
+  <div class="logo"><div class="m"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9H3z" fill="#ffc93c"/><rect x="10" y="14" width="4" height="6" fill="#1f6f50"/><circle cx="18" cy="6" r="3" fill="#95d5b2"/></svg></div>Bairro Ideal</div>
+  <div class="nome">🏡 Vila Esperança <small>· editado agora</small></div>
+  <div class="abas"><b class="on">🧊 3D</b><b>🗺️ Planta</b><b>📖 Historinha</b><b>⚖️ Comparar</b></div>
+  <div class="bt">↶ Desfazer</div><div class="bt p">💾 Salvar</div><div class="av">VC</div>
+</div>
+<div class="corpo">
+  <div class="painel">
+    <h3 style="font-size:19px">Caixa de peças</h3>
+    <div class="busca">🔍 Procurar peça… (ex.: árvore)</div>
+    <div class="cats"><span>Chão</span><span class="on">Casas</span><span>Natureza</span><span>Pessoas</span><span>Serviços</span><span>Lazer</span><span>Água</span><span>Problemas</span></div>
+    <div class="grade" id="grade"></div>
+    <div style="font-size:12.5px;color:#8a8172;font-weight:700;text-align:center">+ 120 peças · arraste para o tabuleiro</div>
+  </div>
+  <div class="mesa">
+    <svg id="cena" viewBox="0 0 740 800"></svg>
+    <div class="flut dica">👆 Toque numa peça e depois no chão</div>
+    <div class="flut vista"><div class="red">↻</div><div class="red">＋</div><div class="red">－</div><div class="red">☀️</div></div>
+    <div class="flut ferr"><b class="on">✏️ Colocar</b><b>✋ Mover</b><b>🔄 Girar</b><b>🧽 Apagar</b><b>🖌️ Pintar chão</b></div>
+    <div class="selo">🌳 Bairro ideal</div>
+  </div>
+  <div class="painel">
+    <h3 style="font-size:19px">Sobre o bairro</h3>
+    <div class="tipo"><span class="on">🌳 Ideal</span><span>🏚️ Carente</span><span>✏️ Livre</span></div>
+    <div class="hist"><b>A história</b>A Vila Esperança nasceu em 1985 perto do córrego. Hoje tem escola, praça, lago limpo e ruas asfaltadas com iluminação…<span style="color:#b9ae99"> continuar escrevendo</span></div>
+    <div class="term"><h3 style="font-size:16px">Termômetro do bairro <small style="font-family:Nunito;color:#8a8172;font-size:12px">(automático)</small></h3>
+      <div class="l"><span>🌳 Natureza</span><span>82%</span></div><div class="barra"><i style="width:82%;background:#52b788"></i></div>
+      <div class="l"><span>🏠 Moradia</span><span>90%</span></div><div class="barra"><i style="width:90%;background:#ff9f68"></i></div>
+      <div class="l"><span>💧 Saneamento</span><span>100%</span></div><div class="barra"><i style="width:100%;background:#4cc9f0"></i></div>
+      <div class="l"><span>🎈 Lazer</span><span>75%</span></div><div class="barra"><i style="width:75%;background:#ffc93c"></i></div>
+      <div class="l"><span>🧹 Limpeza</span><span>95%</span></div><div class="barra"><i style="width:95%;background:#9b8afb"></i></div>
+    </div>
+    <div class="hist" style="display:flex;gap:10px;align-items:center"><div id="mini" style="width:84px;height:60px;flex:none"></div><div><b>Comparar com…</b>Morro Seco <span style="color:#c0583a;font-weight:800">(carente)</span></div></div>
+    <div class="nums"><div><b>8</b>casas</div><div><b>2</b>prédios</div><div><b>14</b>árvores</div><div><b>12</b>pessoas</div></div>
+  </div>
+</div>
+<script type="module">
+import {cena,IDEAL,CARENTE,peca} from './iso.js';
+document.getElementById('cena').innerHTML=cena(IDEAL,{ox:318,oy:250,s:1.06});
+const P=[['casa',{},'Casinha'],['casa',{cor:'#e8f7ff',telhado:'#3d7dd8'},'Casa azul'],['predio',{andares:4},'Prédio'],['predio',{cor:'#ffcfa8',andares:2},'Sobrado'],['escola',{},'Escola'],['casa',{cor:'#fff8d6',telhado:'#2a9d8f'},'Casa verde'],['barraco',{},'Barraco'],['ruina',{},'Casa caída'],['caixaDagua',{},"Caixa d'água"],['arvore',{},'Árvore'],['lixo',{},'Lixo'],['pessoa',{cor:'#4361ee'},'Pessoa']];
+document.getElementById('mini').innerHTML=`<svg viewBox="0 0 700 380" width="84" height="60">${cena(CARENTE,{ox:310,oy:40,s:1,base:'#8a6a4a'})}</svg>`;
+document.getElementById('grade').innerHTML=P.map(([t,o,n],i)=>`<div class="pc ${i==1?'on':''}"><div>${t==='escola'?peca('casa',{cor:'#ffd166',telhado:'#ef476f'}):peca(t,o)}</div><i>${n}</i></div>`).join('');
+</script></body></html>

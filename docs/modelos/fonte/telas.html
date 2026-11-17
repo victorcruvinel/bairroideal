@@ -1,0 +1,64 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#efe6d4;font-family:Nunito;color:#2b2a33;padding:26px;display:grid;grid-template-columns:520px 1fr 300px;gap:22px}
+h2,h3,.f{font-family:Fredoka}
+.lb{font-family:Fredoka;font-weight:600;font-size:15px;color:#7a6f5c;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+.cx{background:#f6efe2;border-radius:26px;padding:20px;height:calc(100% - 30px);border:2px solid #e2d6bf;overflow:hidden}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.card{background:#fff;border:2px solid #e6dcc8;border-radius:20px;overflow:hidden}
+.card .th{height:120px;background:#fbf6ec;position:relative}.card svg{position:absolute;inset:0;width:100%;height:100%}
+.card p{padding:8px 12px 10px;font-weight:800;font-size:14px}.card p small{display:block;color:#8a8172;font-weight:700;font-size:12px}
+.chip{display:inline-block;font-family:Fredoka;font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px;margin-top:4px}
+.nova{border:3px dashed #1f6f50;background:#eef7f1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#1f6f50;font-family:Fredoka;font-weight:600;min-height:176px}
+.nova b{font-size:38px;line-height:1}
+.hist{position:relative;border-radius:26px;overflow:hidden;background:linear-gradient(180deg,#ffd6a5 0%,#ffe9c9 40%,#fff4e0 100%);height:calc(100% - 30px)}
+.hist svg{position:absolute;inset:0;width:100%;height:100%}
+.sol{position:absolute;right:70px;top:40px;width:90px;height:90px;border-radius:50%;background:#ffb703;box-shadow:0 0 0 18px #ffb70333,0 0 0 40px #ffb7031a}
+.leg{position:absolute;left:28px;right:28px;bottom:26px;background:#fff;border-radius:22px;padding:18px 22px;box-shadow:0 10px 30px #0002;display:flex;gap:16px;align-items:center}
+.leg .av{width:64px;height:64px;border-radius:50%;background:#95d5b2;display:grid;place-items:center;font-size:34px;flex:none}
+.leg h3{font-size:20px}.leg p{font-size:16px;line-height:1.45;color:#4b463c}
+.pg{position:absolute;top:22px;left:26px;display:flex;gap:8px;align-items:center;background:#ffffffcc;border-radius:999px;padding:8px 14px;font-weight:800}
+.pg i{width:9px;height:9px;border-radius:50%;background:#d6c7ab}.pg i.on{width:26px;border-radius:9px;background:#1f6f50}
+.nav{position:absolute;bottom:150px;display:flex;justify-content:space-between;left:26px;right:26px}
+.nav b{width:54px;height:54px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:24px;box-shadow:0 6px 16px #0002}
+.x{position:absolute;left:250px;top:300px;width:170px;height:110px;border-radius:50%;border:4px dashed #fff;box-shadow:0 0 0 2000px #0000}
+.cel{width:300px;height:calc(100% - 30px);border-radius:46px;background:#1b1b1f;padding:12px}
+.tela{width:100%;height:100%;border-radius:36px;background:#f6efe2;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.tela .t{padding:40px 16px 8px;display:flex;justify-content:space-between;align-items:center;font-family:Fredoka;font-weight:700;color:#1f6f50;font-size:18px}
+.tela .mapa{flex:1;position:relative}.tela .mapa svg{position:absolute;inset:0;width:100%;height:100%}
+.gav{background:#fff;border-radius:26px 26px 0 0;padding:10px 12px 22px;box-shadow:0 -6px 20px #0001}
+.gav .al{width:40px;height:5px;border-radius:9px;background:#ddd;margin:0 auto 8px}
+.gav .r{display:flex;gap:8px}.gav .r div{width:62px;height:62px;border-radius:16px;background:#fbf6ec;border:2px solid #eee}
+.gav .r svg{width:100%;height:100%}
+.pill{display:flex;gap:6px;margin-bottom:8px}.pill span{font-family:Fredoka;font-weight:600;font-size:12px;padding:5px 10px;border-radius:999px;background:#f0e7d6}.pill span.on{background:#ff7a59;color:#fff}
+</style></head><body>
+<div><div class="lb">1 · Minhas maquetes</div><div class="cx"><h2 style="font-size:24px">Olá, professora! 👋</h2><p style="color:#7a6f5c;font-weight:700">Crie quantas maquetes quiser.</p>
+ <div class="cards">
+  <div class="card nova"><b>＋</b>Nova maquete<span style="font-family:Nunito;font-size:12px;color:#5c7d6c">do zero ou de um modelo pronto</span></div>
+  <div class="card"><div class="th"><svg id="t1" viewBox="0 0 700 420"></svg></div><p>Vila Esperança<small>editado hoje · 142 peças</small><span class="chip" style="background:#d8f3dc;color:#1f6f50">🌳 Ideal</span></p></div>
+  <div class="card"><div class="th"><svg id="t2" viewBox="0 0 700 420"></svg></div><p>Morro Seco<small>editado ontem · 96 peças</small><span class="chip" style="background:#fde2d0;color:#b45309">🏚️ Carente</span></p></div>
+  <div class="card"><div class="th" style="display:grid;place-items:center;font-size:40px">🗺️</div><p>Meu bairro de verdade<small>rascunho · 12 peças</small><span class="chip" style="background:#ede9fe;color:#6d28d9">✏️ Livre</span></p></div>
+ </div>
+ <h3 style="margin:22px 0 10px;font-size:18px">Começar com um modelo pronto</h3>
+ <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-weight:800;font-size:13px;text-align:center">
+  <div class="card" style="padding:12px 6px"><div style="font-size:30px">🌳</div>Bairro ideal</div>
+  <div class="card" style="padding:12px 6px"><div style="font-size:30px">🏚️</div>Bairro carente</div>
+  <div class="card" style="padding:12px 6px"><div style="font-size:30px">🟩</div>Terreno vazio</div></div>
+ <p style="margin-top:16px;background:#fff;border-radius:16px;padding:12px 14px;font-size:13.5px;color:#5b5446;border:2px solid #e6dcc8">💡 Dá para <b>duplicar</b> uma maquete e transformar o bairro ideal no carente (ou o contrário) para comparar.</p>
+ </div></div>
+<div><div class="lb">2 · Modo historinha (o bairro "conta" a sua história)</div><div class="hist"><div class="sol"></div><svg id="h" viewBox="0 0 560 800"></svg>
+  <div class="pg">Capítulo 2 de 5 <i></i><i class="on"></i><i></i><i></i><i></i></div>
+  <div class="nav"><b>‹</b><b>›</b></div><div style="position:absolute;left:62px;top:215px;width:240px;height:150px;border-radius:50%;border:4px dashed #fff;box-shadow:0 0 0 3px #ffb70388"></div>
+  <div class="leg"><div class="av">🦉</div><div><h3>A escola chegou!</h3><p>Em 1998 os moradores pediram uma escola. Hoje 300 crianças estudam a 5 minutos de casa. 🏫</p></div></div></div></div>
+<div><div class="lb">3 · No celular</div><div class="cel"><div class="tela"><div class="t">🏘️ Vila Esperança <span style="font-size:22px">☰</span></div><div class="mapa"><svg id="m" viewBox="0 0 700 500"></svg></div>
+ <div class="gav"><div class="al"></div><div class="pill"><span>Casas</span><span class="on">Natureza</span><span>Pessoas</span><span>Problemas</span></div><div class="r" id="r"></div></div></div></div></div>
+<script type="module">
+import {cena,IDEAL,CARENTE,peca} from './iso.js';
+document.getElementById('t1').innerHTML=cena(IDEAL,{ox:300,oy:60,s:.9});
+document.getElementById('t2').innerHTML=cena(CARENTE,{ox:300,oy:60,s:.9,base:'#8a6a4a'});
+document.getElementById('m').innerHTML=cena(IDEAL,{ox:330,oy:110,s:1.02});
+document.getElementById('h').innerHTML=cena(IDEAL,{ox:430,oy:140,s:1.55});
+document.getElementById('r').innerHTML=[['arvore',{}],['pinheiro',{}],['arvore',{cor:'#ff8fab'}],[null,{},'f']].map(([t,o,c])=>`<div>${peca(t,o,c||'g')}</div>`).join('');
+</script></body></html>
