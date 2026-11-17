@@ -1,5 +1,6 @@
 {
-  // Bairro Ideal · criador de maquetes de bairros. Publicado pelo Cloudflare Workers a cada push na main.
+  // Bairro Ideal · criador de maquetes de bairros. Publicado pelo Cloudflare Workers a cada push na main
+  // (no painel: branch de produção = main, comando de deploy = npx wrangler deploy).
   "name": "bairroideal",
   "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
