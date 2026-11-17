@@ -16,6 +16,10 @@ Bairro Ideal · **por Elaine Freitas Muniz**. Site: **https://bairroideal.victor
 - **Modo história (apresentação)**: capítulos com a câmera voando pelo bairro e uma coruja narradora. Pode ler em voz alta. Se não houver capítulos, o app cria uma história automática.
 - **Comparar**: lado a lado ou com cortina deslizante, mais a tabela de diferenças.
 - **Contas**: login só com **código no e-mail**. O primeiro acesso é do administrador (hello@victorcruvinel.dev), que convida as outras pessoas na tela **Pessoas**.
+- **Compartilhar** cada maquete: arte própria para o WhatsApp (o link `/v/ID` mostra o nome, a nota e a imagem da maquete), QR Code (também em tela cheia, para projetar), copiar link, baixar a arte e o QR. Dá para compartilhar a exposição inteira.
+- **Instalar o app**: convite toda vez que acessa pelo navegador (Android/computador: botão de instalar; iPhone/iPad: passo a passo).
+- **Atualização forçada**: a cada publicação o app de todo mundo atualiza sozinho (confere a versão a cada minuto e ao voltar para o app, salva o que estiver aberto e recarrega).
+- **Carregando** animado em toda troca de tela.
 - **Funciona sem internet** (tudo é salvo no aparelho e sobe para a planilha quando a internet volta).
 - **Proteção**: sem botão direito e sem zoom de pinça. Copiar e colar só para quem entrou com a conta (visitante não copia). **Política de privacidade e cookies** (LGPD) em `#/privacidade`.
 
@@ -67,6 +71,8 @@ node test/servidor.mjs 8090    # abre o app em http://localhost:8090 (modo local
 node test/servidor.mjs 8090 --planilha   # com o Codigo.gs rodando num Google de mentira
 node test/interacoes.mjs       # usa o editor com o mouse (servidor na 8090)
 node test/login.mjs            # login por código, nuvem e convites (sobe o servidor sozinho na 8091)
+node test/passeio-toque.mjs    # passeio com o dedo no iPad e no iPhone (servidor na 8090)
+node test/atualizar-instalar.mjs  # atualização forçada e convite para instalar (sobe o servidor na 8092)
 node test/gerar-imagens.mjs    # refaz os ícones e a imagem de compartilhar
 ```
 Pastas: `public/` (site), `public/js/telas/` (cada tela), `worker/` (Cloudflare), `apps-script/` (planilha), `test/`, `docs/modelos/` (os modelos visuais aprovados).

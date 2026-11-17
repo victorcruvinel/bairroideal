@@ -47,3 +47,31 @@ export const dataBonita = (iso) => {
   if (dias < 7) return `há ${dias} dias`; return d.toLocaleDateString('pt-BR');
 };
 export const num = (n) => Number(n || 0).toLocaleString('pt-BR');
+
+// ------------------------------------------------ carregando (bonito e responsivo)
+// Só aparece se demorar mais que 150 ms, para não piscar. Uso: const c = carregando('Abrindo…'); ... c.fechar();
+const DICAS = ['Dica: use 🪣 o balde para pintar uma área inteira de uma vez.', 'Dica: a 📏 régua mede a distância entre dois pontos com Pitágoras.',
+  'Dica: no 🚶 passeio dá para pular e voar!', 'Dica: 🌙 o modo noite mostra quais ruas têm iluminação.', 'Dica: ⚖️ compare o bairro ideal com o carente lado a lado.',
+  'Dica: ✨ a história automática cria os capítulos sozinha.', 'Dica: cada quadradinho mede 10 m × 10 m = 100 m².'];
+const PECAS_SVG = [
+  '<svg viewBox="0 0 40 40"><path d="M20 4 36 13 20 22 4 13z" fill="#ff7a59"/><path d="M4 13v13l16 9V22z" fill="#fff3e0"/><path d="M36 13v13l-16 9V22z" fill="#e8d7bd"/><rect x="9" y="22" width="5" height="8" fill="#7a4b2a" transform="skewY(30) translate(0 -5)"/></svg>',
+  '<svg viewBox="0 0 40 40"><rect x="18" y="22" width="4" height="14" fill="#8b5a2b"/><circle cx="20" cy="17" r="13" fill="#52b788"/><circle cx="15" cy="12" r="5" fill="#95d5b2"/></svg>',
+  '<svg viewBox="0 0 40 40"><path d="M20 2 32 8 20 14 8 8z" fill="#d6e4ff"/><path d="M8 8v26l12 6V14z" fill="#a9c7ff"/><path d="M32 8v26l-12 6V14z" fill="#7fa6e8"/><g fill="#eaf6ff"><rect x="11" y="15" width="3" height="3"/><rect x="11" y="22" width="3" height="3"/><rect x="11" y="29" width="3" height="3"/></g></svg>',
+];
+let carregadorAtivo = null;
+export function carregando(texto = 'Carregando…', { atraso = 150 } = {}) {
+  if (carregadorAtivo) { carregadorAtivo.texto(texto); carregadorAtivo.n++; return carregadorAtivo; }
+  const c = el(`<div class="carregando" role="status" aria-live="polite"><div class="carregando-cx">
+    <div class="carregando-pecas">${PECAS_SVG.map((s, i) => `<span style="--i:${i}">${s}<i></i></span>`).join('')}</div>
+    <div class="carregando-chao"></div><b class="carregando-t">${texto}</b><div class="carregando-barra"><i></i></div>
+    <small class="carregando-dica">${DICAS[Math.floor(Math.random() * DICAS.length)]}</small></div></div>`);
+  let timer = setTimeout(() => { document.body.append(c); requestAnimationFrame(() => c.classList.add('on')); }, atraso);
+  const troca = setInterval(() => { const d = c.querySelector('.carregando-dica'); d.classList.add('sai'); setTimeout(() => { d.textContent = DICAS[Math.floor(Math.random() * DICAS.length)]; d.classList.remove('sai'); }, 300); }, 3200);
+  const api = {
+    n: 1,
+    texto(t) { c.querySelector('.carregando-t').textContent = t; },
+    fechar() { if (--api.n > 0) return; clearTimeout(timer); clearInterval(troca); carregadorAtivo = null; c.classList.remove('on'); setTimeout(() => c.remove(), 250); },
+  };
+  carregadorAtivo = api; return api;
+}
+export async function comCarregando(texto, promessa) { const c = carregando(texto); try { return await promessa; } finally { c.fechar(); } }

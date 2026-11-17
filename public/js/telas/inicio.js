@@ -8,8 +8,12 @@ export async function montar(app) {
   if (estado.visitante) return exposicao(app);
   app.append(topo());
   const tela = el(`<div class="tela"><div class="larg">
-    <div class="ola"><div><h1>Olá${estado.usuario ? ', ' + esc(estado.usuario.nome.split(' ')[0]) : ''}! 👋</h1><p>Monte bairros, compare e conte a história de cada um.</p></div>
-      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap"><a class="bt" href="#/comparar">⚖️ Comparar bairros</a>${estado.usuario?.papel === 'admin' ? '<a class="bt" href="#/pessoas">👥 Pessoas</a>' : ''}</div></div>
+    <section class="heroi"><div class="heroi-nuvens"></div>
+      <h1>Olá${estado.usuario ? ', ' + esc(estado.usuario.nome.split(' ')[0]) : ''}! 👋</h1><p>Monte bairros, compare e conte a história de cada um.</p>
+      <div class="heroi-nums" id="nums"></div>
+      <div class="heroi-bts"><button class="bt bt--sol bt--gde" id="nova2">＋ Nova maquete</button><a class="bt bt--gde" href="#/comparar">⚖️ Comparar</a><button class="bt bt--gde" id="tour2">▶ Apresentar todas</button><button class="bt bt--gde" id="expo2">📤 Compartilhar a exposição</button>${estado.usuario?.papel === 'admin' ? '<a class="bt bt--gde" href="#/pessoas">👥 Pessoas</a>' : ''}<button class="bt bt--gde esconde" id="inst2">📲 Instalar o app</button></div>
+    </section>
+    <h2 class="secao-t">🗺️ Minhas maquetes</h2>
     <div class="grade-m" id="minhas"><div class="vazio-lista" style="grid-column:1/-1">Carregando suas maquetes…</div></div>
     <h2 class="secao-t">🧩 Começar com um modelo pronto</h2>
     <div class="modelos">${MODELOS.map((x) => `<button class="modelo" data-m="${x.id}"><span class="em">${x.emoji}</span><span><b>${x.nome}</b><small>${x.desc}</small></span></button>`).join('')}</div>
@@ -41,9 +45,16 @@ export async function montar(app) {
     const g = tela.querySelector('#minhas');
     g.innerHTML = `<button class="cartao-m cartao-novo" id="nova"><b>＋</b>Nova maquete<small>do zero ou de um modelo pronto</small></button>` + lista.minhas.map((m) => cartao(m, true)).join('');
     g.querySelector('#nova').onclick = async () => { const m = await novaMaquete(); if (m) location.hash = '#/m/' + m.id; };
+    const notas = lista.minhas.map((m) => m.nota).filter((n) => n != null), media = notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null;
+    tela.querySelector('#nums').innerHTML = `<span><b>${lista.minhas.length}</b>${lista.minhas.length === 1 ? 'maquete' : 'maquetes'}</span><span><b>${lista.minhas.filter((m) => m.publica !== false).length}</b>na exposição</span><span><b>${media == null ? '–' : notaTxt(Math.round(media * 10) / 10)}</b>nota média</span><span><b>${num(lista.minhas.reduce((a, m) => a + (m.pecas || 0), 0))}</b>peças usadas</span>`;
+    tela.querySelector('#tour2').disabled = !lista.minhas.length;
     const eq = tela.querySelector('#equipe');
     eq.innerHTML = lista.equipe.length ? `<h2 class="secao-t">👥 Maquetes da equipe <small>${lista.equipe.length}</small></h2><div class="grade-m">${lista.equipe.map((m) => cartao(m, false)).join('')}</div>` : '';
   }
+  tela.querySelector('#nova2').onclick = async () => { const m = await novaMaquete(); if (m) location.hash = '#/m/' + m.id; };
+  tela.querySelector('#tour2').onclick = () => { const ids = lista.minhas.map((m) => m.id); if (!ids.length) return; try { sessionStorage.setItem('bi:tour', JSON.stringify(ids)); } catch { /* */ } location.hash = '#/m/' + ids[0] + '/historia'; };
+  tela.querySelector('#expo2').onclick = async () => (await import('../compartilhar.js')).compartilharSite();
+  ligarInstalar(tela.querySelector('#inst2'));
   await carregar();
 
   tela.addEventListener('click', async (e) => {
@@ -59,7 +70,7 @@ export async function montar(app) {
     const r = botao.getBoundingClientRect();
     const mn = el(`<div class="menu-flut" style="top:${Math.min(r.bottom + 6, innerHeight - 330)}px;left:${Math.max(8, Math.min(r.right - 220, innerWidth - 230))}px">
       <button data-a="abrir">✏️ ${minha ? 'Abrir e editar' : 'Abrir'}</button><button data-a="historia">📖 Apresentar história</button><button data-a="passeio">🚶 Passear dentro</button>
-      <button data-a="comparar">⚖️ Comparar com…</button><button data-a="duplicar">📄 Duplicar</button>
+      <button data-a="compartilhar">📤 Compartilhar (WhatsApp / QR)</button><button data-a="comparar">⚖️ Comparar com…</button><button data-a="duplicar">📄 Duplicar</button>
       ${minha ? '<button data-a="renomear">🏷️ Renomear</button><button data-a="excluir" class="perigo">🗑️ Apagar</button>' : ''}</div>`);
     document.body.append(mn);
     const fecha = (ev) => { if (!mn.contains(ev.target)) { mn.remove(); document.removeEventListener('pointerdown', fecha); } };
@@ -70,6 +81,7 @@ export async function montar(app) {
       if (a === 'historia') location.hash = '#/m/' + id + '/historia';
       if (a === 'passeio') location.hash = '#/m/' + id + '/passeio';
       if (a === 'comparar') location.hash = '#/comparar/' + id;
+      if (a === 'compartilhar') { const m = await abrir(id); if (m) { const { compartilhar } = await import('../compartilhar.js'); compartilhar(m, carregar); } }
       if (a === 'duplicar') { const m = await abrir(id); if (!m) return aviso('Não consegui abrir essa maquete agora.', 'erro'); const c = await duplicar(m); aviso('Cópia criada: ' + esc(c.nome)); carregar(); }
       if (a === 'renomear') {
         const nome = await janela({ titulo: '🏷️ Renomear', corpo: `<label class="campo">Nome<input name="n" maxlength="60" value="${esc(resumo.nome)}"></label>`, botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Salvar', classe: 'bt--sol', valor: (f) => f.querySelector('[name=n]').value.trim() }] });
@@ -86,8 +98,10 @@ export async function montar(app) {
 async function exposicao(app) {
   app.append(topo());
   const tela = el(`<div class="tela"><div class="larg">
-    <div class="ola"><div><h1>🏛️ Exposição de maquetes</h1><p>Toque num bairro para ver em 3D, na planta, passear por dentro e conhecer a história.</p></div>
-      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap"><button class="bt bt--sol bt--gde" id="tour">▶ Apresentar todos</button><a class="bt bt--gde" href="#/comparar">⚖️ Comparar</a></div></div>
+    <section class="heroi heroi--expo"><div class="heroi-nuvens"></div>
+      <h1>🏛️ Exposição de maquetes</h1><p>Toque num bairro para ver em 3D, na planta, passear por dentro e conhecer a história.</p>
+      <div class="heroi-bts"><button class="bt bt--sol bt--gde" id="tour">▶ Apresentar todos</button><a class="bt bt--gde" href="#/comparar">⚖️ Comparar</a><button class="bt bt--gde" id="expo2">📤 Compartilhar</button><button class="bt bt--gde esconde" id="inst2">📲 Instalar o app</button></div>
+    </section>
     <div class="grade-m" id="expo"><div class="vazio-lista" style="grid-column:1/-1">Carregando a exposição…</div></div>
     <div class="dica-cx" style="margin-top:22px">👀 Você está no <b>modo visitante</b>: dá para ver tudo, mas não dá para mudar nada. Quem tem conta pode tocar em <b>🔑 Entrar</b> para editar.</div>
     <div class="rodape">Bairro Ideal · por Elaine Freitas Muniz · <a href="#/privacidade">Privacidade e cookies</a></div>
@@ -104,13 +118,23 @@ async function exposicao(app) {
       <div class="th">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<span class="vazio">🗺️</span>'}</div>
       <div class="info"><b>${esc(m.nome)}</b><small>${m.cidade ? '📍 ' + esc(m.cidade) + ' · ' : ''}${num(m.pecas)} peças${m.donoNome ? ' · por ' + esc(m.donoNome.split(' ')[0]) : ''}</small>
       <div class="linha">${chipTipo(m.tipo)}<span class="nota" style="color:${corNota(m.nota)}">${notaTxt(m.nota)}</span></div>
-      <div class="expo-b"><button class="bt" data-v="ver">🧊 Ver</button><button class="bt" data-v="historia">📖 História</button><button class="bt" data-v="passeio">🚶 Passear</button></div></div></div>`).join('')
+      <div class="expo-b"><button class="bt" data-v="ver">🧊 Ver</button><button class="bt" data-v="comp" title="Compartilhar">📤</button><button class="bt" data-v="historia">📖 História</button><button class="bt" data-v="passeio">🚶 Passear</button></div></div></div>`).join('')
     : `<div class="vazio-lista" style="grid-column:1/-1">Ainda não há maquetes na exposição${navigator.onLine ? '' : ' (e o aparelho está sem internet)'}.</div>`;
   tela.querySelector('#tour').disabled = !equipe.length;
+  tela.querySelector('#expo2').onclick = async () => (await import('../compartilhar.js')).compartilharSite();
+  ligarInstalar(tela.querySelector('#inst2'));
   tela.querySelector('#tour').onclick = () => { try { sessionStorage.setItem('bi:tour', JSON.stringify(equipe.map((m) => m.id))); } catch { /* */ } location.hash = '#/m/' + equipe[0].id + '/historia'; };
   g.addEventListener('click', (e) => {
     const c = e.target.closest('[data-id]'); if (!c) return; const v = e.target.closest('[data-v]')?.dataset.v || 'ver';
+    if (v === 'comp') { abrir(c.dataset.id).then(async (m) => { if (m) (await import('../compartilhar.js')).compartilhar(m); }); return; }
     try { sessionStorage.removeItem('bi:tour'); } catch { /* */ }
     location.hash = '#/m/' + c.dataset.id + (v === 'ver' ? '' : '/' + v);
   });
+}
+
+// botão "Instalar o app" aparece quando o aparelho deixa instalar
+async function ligarInstalar(b) {
+  const { podeInstalar, pedirInstalacao } = await import('../instalar.js');
+  const ver = () => b.classList.toggle('esconde', !podeInstalar()); ver(); document.addEventListener('bi:instalavel', ver);
+  b.onclick = async () => { await pedirInstalacao(); ver(); };
 }

@@ -98,3 +98,16 @@ test('modo visitante: lista e abre só as maquetes da exposição, sem login', a
   assert.equal(g.chamar({ acao: 'excluir', id: 'mpub01' }).erro, 'sessao');
   assert.equal(g.chamar({ acao: 'listar', sessao: adm }).maquetes.length, 2, 'dono vê as duas');
 });
+
+test('arte do WhatsApp: só o dono salva, todo mundo lê se estiver na exposição', async () => {
+  const g = criarGas(); const adm = await entrar(g, ADMIN, 'Victor Cruvinel');
+  g.chamar({ acao: 'salvar', sessao: adm, meta: { id: 'marte01', nome: 'Com arte', publica: true }, dados: 'g:um', thumb: 'data:image/jpeg;base64,AAAA' });
+  assert.equal(g.chamar({ acao: 'publico.arte', id: 'marte01' }).erro, 'sem_arte');
+  const arte = 'A'.repeat(120000);
+  assert.equal(g.chamar({ acao: 'arte.salvar', id: 'marte01', arte }).erro, 'sessao');
+  assert.equal(g.chamar({ acao: 'arte.salvar', sessao: adm, id: 'marte01', arte: '<script>' + arte }).erro, 'arte');
+  assert.equal(g.chamar({ acao: 'arte.salvar', sessao: adm, id: 'marte01', arte }).ok, true);
+  assert.equal(g.chamar({ acao: 'publico.arte', id: 'marte01' }).arte, arte);
+  assert.equal(g.chamar({ acao: 'publico.meta', id: 'marte01' }).meta.nome, 'Com arte');
+  g.chamar({ acao: 'excluir', sessao: adm, id: 'marte01' }); assert.equal(g.abas.get('Artes').getLastRow(), 1, 'arte apagada junto');
+});

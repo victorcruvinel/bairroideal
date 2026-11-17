@@ -27,6 +27,14 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Copiar/colar: liberado só com conta (`data-copiar="sim"` no `<html>`, definido no router); visitante bloqueado.
 - Passeio: controles de toque sempre que a tela aceita toque (joystick fixo, correr, pular/subir, descer ao voar). Teste: `node test/passeio-toque.mjs` (iPad e iPhone com toque simulado).
 
+## Rodada 4
+- Instalar: `js/instalar.js` (beforeinstallprompt + passo a passo iOS), 1 vez por sessão na porta/início; botão "Instalar o app" no herói.
+- Atualização forçada: `js/atualizar.js` confere `/versao.json` (no-store) ao abrir, a cada 60 s e ao voltar ao app; se mudou: salva (perguntarSaida), apaga caches, recarrega. `sw-base.js`: navegação pela rede primeiro, arquivos com cache por versão (`cache: 'reload'` na instalação). `_headers` com no-cache em js/css.
+- Compartilhar: `js/compartilhar.js` (arte 1200×630 no canvas, QR com `vendor/qrcode.js`, WhatsApp, tela cheia). Worker: `/v/ID` = index.html com og:tags da maquete (Apps Script `publico.meta`), `/og/ID.jpg` = arte (aba Artes, `publico.arte`; salva por `arte.salvar`), cache 1 h. Maquete precisa estar na exposição.
+- Carregando: `carregando()` em ui.js (aparece após 150 ms), usado no router.
+- Passeio: velocidade com aceleração/freio, pulo andando (segurar = pula de novo), botões por pointerdown (multitoque), olhar suave com o dedo.
+- Matemática: `htmlMatematica()` em matematica.js: ideia → passos → resultado → prova real; desafios com resposta.
+
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).
 - Branch de trabalho: `claude/bairro-ideal-mockup-app-6j87sk`. **Publicar sempre também na `main`** (autorizado pelo Victor em 17/11; o Cloudflare publica a partir da `main`).

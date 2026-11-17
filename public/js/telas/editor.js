@@ -3,7 +3,7 @@
 import { el, esc, janela, aviso, balao, confete, confirmar, num } from '../ui.js';
 import { abrir, salvar, aoMudar, estado, podeEditar, ehMinha, duplicar, sairVisitante } from '../dados.js';
 import { indexar, desenhar, celulaEm, deltaMundo, enquadrar, miniatura, caixaGirada, lapis, K, tamanho, girar, TW, TH, TP } from '../motor.js';
-import { calcular, medir as medirReta, coord, fracao, fmt, GRUPOS, LADO } from '../matematica.js';
+import { calcular, medir as medirReta, coord, fmt, LADO, htmlMatematica } from '../matematica.js';
 import { CATEGORIAS, TODAS, OBJETOS, CHAOS, SINONIMOS, peca } from '../pecas.js';
 import { analisar, dicas, INDICADORES } from '../termometro.js';
 import { chipTipo, TIPOS, notaTxt, corNota, prepararParaSalvar } from './comum.js';
@@ -45,6 +45,7 @@ export async function montar(app, [id]) {
       <div class="ed-acoes">
         ${edita ? '<button class="redondo" data-a="desfazer" title="Desfazer (Ctrl+Z)">↶</button><button class="redondo" data-a="refazer" title="Refazer">↷</button>' : ''}
         <span class="ed-salvo" title="Tudo é salvo sozinho">✓ Salvo</span>
+        <button class="redondo" data-a="compartilhar" title="Compartilhar (WhatsApp e QR Code)">📤</button>
         <button class="redondo ed-bt-painel" data-a="painel" title="Informações do bairro">📊</button>
       </div>
     </header>
@@ -163,11 +164,13 @@ export async function montar(app, [id]) {
     if (!b) { reguaEl.innerHTML = `<h4>📏 Régua</h4><p>A = ${coord(a)}. Agora toque no ponto <b>B</b>.</p><button data-r="fechar">✕</button>`; return; }
     const r = medirReta(a, b);
     reguaEl.innerHTML = `<h4>📏 Distância de A até B</h4><button data-r="fechar">✕</button>
-      <p class="f">A ${coord(a)} → B ${coord(b)}</p><p class="f">Δx = ${r.dx} · Δy = ${r.dy}</p>
-      <p class="f">d = √(Δx² + Δy²) = √(${r.dx * r.dx} + ${r.dy * r.dy}) = √${r.dx * r.dx + r.dy * r.dy} ≈ ${fmt(r.d, 2)}</p>
-      <p class="f">${fmt(r.d, 2)} × ${LADO} m ≈ <b>${fmt(r.metros, 1)} m</b> em linha reta</p>
-      <p class="f">A pé pelas quadras: (|Δx| + |Δy|) × ${LADO} = <b>${fmt(r.aPe)} m</b></p>
-      <small>${r.inclinacao == null ? 'Reta vertical (Δx = 0).' : `Inclinação da reta: m = Δy ÷ Δx = ${fmt(r.inclinacao, 2)} · ângulo ≈ ${fmt(r.ang, 1)}°`}</small>`;
+      <p class="ideia">A ${coord(a)} e B ${coord(b)} formam um triângulo retângulo: os catetos são Δx e Δy, a reta laranja é a hipotenusa.</p>
+      <ol class="passos"><li class="f">Δx = ${b.x} − ${a.x} = ${r.dx} · Δy = ${-b.y || 0} − ${-a.y || 0} = ${r.dy}</li>
+      <li class="f">d² = Δx² + Δy² = ${r.dx * r.dx} + ${r.dy * r.dy} = ${r.dx * r.dx + r.dy * r.dy}</li>
+      <li class="f">d = √${r.dx * r.dx + r.dy * r.dy} ≈ ${fmt(r.d, 2)} quadradinhos</li>
+      <li class="f">${fmt(r.d, 2)} × ${LADO} m ≈ <b>${fmt(r.metros, 1)} m</b> em linha reta</li></ol>
+      <p class="prova">🚶 <b>A pé pelas quadras</b> (sem cortar caminho): (|Δx| + |Δy|) × 10 = <b>${fmt(r.aPe)} m</b>. A linha reta é sempre o caminho mais curto!</p>
+      <small>${r.inclinacao == null ? 'Reta vertical: Δx = 0, então não dá para dividir por Δx.' : `Inclinação: m = Δy ÷ Δx = ${r.dy} ÷ ${r.dx} ≈ ${fmt(r.inclinacao, 2)} · ângulo ≈ ${fmt(r.ang, 1)}°`}</small>`;
   }
   reguaEl.addEventListener('click', (e) => { if (e.target.closest('[data-r=fechar]')) { S.regua = { on: false, a: null, b: null }; atualizarRegua(); pedir(); } });
   function estrelas() { ctx.fillStyle = 'rgba(255,255,255,.75)'; for (let i = 0; i < 70; i++) { const x = (i * 197.3) % W, y = (i * 71.9) % (H * .6); ctx.fillRect(x, y, 1.6, 1.6); } }
@@ -424,6 +427,7 @@ export async function montar(app, [id]) {
     if (a === 'desfazer') voltar(desfazer, refazer); if (a === 'refazer') voltar(refazer, desfazer);
     if (a === 'girar') girarVista(1); if (a === 'mais') zoom(1.25); if (a === 'menos') zoom(1 / 1.25); if (a === 'tudo') enquadrarTudo(); if (a === 'noite') alternarNoite();
     if (a === 'crescer') crescer();
+    if (a === 'compartilhar') { await gravar(); const { compartilhar } = await import('../compartilhar.js'); compartilhar(m, () => { if (S.aba === 'sobre') desenharAba(); }); }
     if (a === 'regua') { S.regua = S.regua.on ? { on: false, a: null, b: null } : { on: true, a: null, b: null }; S.sel = null; esconderSel(); atualizarRegua(); pedir(); }
     if (a === 'eixos') { S.eixos = !S.eixos; ed.querySelector('[data-a=eixos]').classList.toggle('on', S.eixos); ed.classList.toggle('com-eixos', S.eixos); if (S.eixos) aviso('📊 Plano cartesiano: cada quadradinho é um ponto (x, y). O eixo y cresce para cima.', 'ok', 3500); pedir(); }
     if (a === 'painel') { S.painel = !S.painel; ed.classList.toggle('com-painel', S.painel); guardarPref(); if (S.painel) desenharAba(); }
@@ -526,24 +530,11 @@ export async function montar(app, [id]) {
     abaC.oninput = null; abaC.onclick = (e) => { const b = e.target.closest('[data-ind]'); if (b) { const i = INDICADORES.find((x) => x.id === b.dataset.ind); aviso(`${i.emoji} <b>${i.nome}</b>: ${esc(i.explica)}`, 'ok', 5000); } };
   }
   function abaMatematica() {
-    const M = calcular(m, analise); const g = GRUPOS.filter((x) => M.uso[x.id]);
-    let ac = 0; const pizza = g.map((x) => { const de = ac; ac += M.uso[x.id] / M.n * 360; return `${x.cor} ${de}deg ${ac}deg`; }).join(',');
-    const de = M.distEscola, ex = M.exemplo;
-    const lousa = (t, corpo) => `<div class="lousa"><h4>${t}</h4>${corpo}</div>`;
-    return `<p class="ed-p">Cada quadradinho mede <b>10 m × 10 m</b>. Toda conta usa os números desta maquete e muda quando ela muda. ✏️</p>
-      ${lousa('📏 Área do terreno', `<p class="f">A = n × (10 m)²</p><p class="f">A = ${fmt(M.n)} × 100 = <b>${fmt(M.area)} m²</b></p><small>= ${fmt(M.hectares, 2)} hectares = ${fmt(M.km2, 3)} km²</small>`)}
-      ${lousa('🔲 Perímetro', `<p class="f">P = bordas × 10 m</p><p class="f">P = ${fmt(M.bordas)} × 10 = <b>${fmt(M.perimetro)} m</b></p><small>O retângulo que cobre o terreno mede ${fmt(M.largura)} m × ${fmt(M.altura)} m = ${fmt(M.retangulo)} m². O terreno ocupa ${fmt(M.ocupacao * 100)}% dele.</small>`)}
-      ${lousa('🥧 Uso do solo (frações)', `<div class="pizza" style="background:conic-gradient(${pizza})"></div><ul class="uso">${g.map((x) => `<li><i style="background:${x.cor}"></i>${x.emoji} ${x.nome}<b>${M.uso[x.id]}/${M.n} ${fracao(M.uso[x.id] / M.n).startsWith('m') || fracao(M.uso[x.id] / M.n).startsWith('q') ? '→' : '≈'} ${fracao(M.uso[x.id] / M.n)} · ${fmt(M.uso[x.id] / M.n * 100)}%</b></li>`).join('')}</ul>`)}
-      ${M.moradores ? lousa('👨‍👩‍👧 Densidade demográfica', `<p class="f">d = moradores ÷ área</p><p class="f">d = ${fmt(M.moradores)} ÷ ${fmt(M.km2, 3)} km²</p><p class="f">d ≈ <b>${fmt(M.densidade)} hab/km²</b></p>`) : ''}
-      ${M.moradores ? lousa('🌳 Verde por morador', `<p class="f">V = área verde ÷ moradores</p><p class="f">V = ${fmt(M.verdeM2)} ÷ ${fmt(M.moradores)} ≈ <b>${fmt(M.verdePorHab, 1)} m²</b></p><small>${M.verdePorHab >= 12 ? '✓' : '✗'} Uma referência muito usada é ter pelo menos 12 m² de verde por habitante.${M.arvorePorMorador ? ` Há 1 árvore para cada ${fmt(M.arvorePorMorador, 1)} moradores.` : ''}</small>`) : ''}
-      ${de ? lousa('🏫 Distância até a escola', `<p class="f">média = soma ÷ ${de.n} casas ≈ <b>${fmt(de.media)} m</b></p><p class="f">mediana ≈ ${fmt(de.mediana)} m · maior = ${fmt(de.maior)} m</p>
-          <small>Pitágoras na casa mais longe: Δx = ${fmt(Math.abs(ex.e[0] - ex.c[0]), 1)}, Δy = ${fmt(Math.abs(ex.e[1] - ex.c[1]), 1)} → d = √(${fmt((ex.e[0] - ex.c[0]) ** 2, 2)} + ${fmt((ex.e[1] - ex.c[1]) ** 2, 2)}) × 10 ≈ ${fmt(ex.d * LADO)} m</small>`) : ''}
-      ${M.notas.length && analise.nota != null ? lousa('🧮 A nota é uma média', `<p class="f">nota = (${M.notas.join(' + ')}) ÷ ${M.notas.length} ÷ 10</p><p class="f">nota = ${fmt(M.somaNotas)} ÷ ${M.notas.length * 10} ≈ <b>${notaTxt(analise.nota)}</b></p>`) : ''}
-      ${M.ruasM ? lousa('🛣️ Ruas', `<p class="f">${fmt(M.ruasM / LADO)} pedaços × 10 m = <b>${fmt(M.ruasM)} m</b> = ${fmt(M.ruasM / 1000, 2)} km</p>`) : ''}
-      ${lousa('📐 Escala', `<p class="f">1 quadradinho = 10 m = 1.000 cm</p><p class="f">Maquete de papel com 1 cm por quadradinho → escala <b>1 : 1.000</b></p><small>A maquete de papel teria ${M.escalaCm[0]} cm × ${M.escalaCm[1]} cm.</small>`)}
+    return `<p class="ed-p">✏️ Cada quadradinho mede <b>10 m × 10 m</b>. Todas as contas usam os números <b>desta maquete</b> e mudam sozinhas quando ela muda.</p>
+      ${htmlMatematica(calcular(m, analise), analise)}
       <div class="caps-b"><button class="bt" data-mat="regua">📏 Medir com a régua</button><button class="bt" data-mat="eixos">📊 Mostrar o plano cartesiano</button></div>`;
   }
-  let textoTimer; function mudouTexto() { clearTimeout(textoTimer); textoTimer = setTimeout(() => { pendente = true; selo.textContent = '✏️ Editando…'; clearTimeout(salvarTimer); salvarTimer = setTimeout(gravar, 1200); }, 300); }
+  let textoTimer, textoPendente = false; function mudouTexto() { textoPendente = true; clearTimeout(textoTimer); textoTimer = setTimeout(() => { textoPendente = false; pendente = true; selo.textContent = '✏️ Editando…'; clearTimeout(salvarTimer); salvarTimer = setTimeout(gravar, 1200); }, 300); }
 
   // ------------------------------------------------ termômetro ao vivo + balõezinhos
   let ultimoToque = null, analiseTimer;
@@ -575,8 +566,8 @@ export async function montar(app, [id]) {
   try { if (edita && !localStorage.getItem('bi:dica-editor')) { localStorage.setItem('bi:dica-editor', '1'); setTimeout(() => aviso('👇 Escolha uma peça embaixo e toque no mapa para colocar', 'ok', 4500), 600); } } catch { /* */ }
 
   return {
-    temMudancas: () => pendente || salvando,
-    perguntarSaida: async () => { await gravar(); return true; },
-    sair: () => { gravar(); desligarDados(); document.body.classList.remove('no-editor'); document.removeEventListener('keydown', tecla); document.removeEventListener('keyup', solta); },
+    temMudancas: () => pendente || salvando || textoPendente,
+    perguntarSaida: async () => { if (textoPendente) { clearTimeout(textoTimer); textoPendente = false; pendente = true; } await gravar(); return true; },
+    sair: () => { if (textoPendente) { clearTimeout(textoTimer); textoPendente = false; pendente = true; } gravar(); desligarDados(); document.body.classList.remove('no-editor'); document.removeEventListener('keydown', tecla); document.removeEventListener('keyup', solta); },
   };
 }

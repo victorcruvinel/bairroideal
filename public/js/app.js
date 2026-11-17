@@ -1,8 +1,10 @@
 // Bairro Ideal · começo de tudo: abertura, dados, rotas (#/...) e atualização do app.
 import { abertura } from './abertura.js';
-import { iniciar, precisaPorta, estado, aoMudar } from './dados.js';
+import { iniciar, precisaPorta, estado, aoMudar, virarVisitante } from './dados.js';
 import { cookies } from './telas/privacidade.js';
-import { aviso } from './ui.js';
+import { aviso, carregando } from './ui.js';
+import { iniciarAtualizacoes, aoAtualizar } from './atualizar.js';
+import { iniciarInstalar } from './instalar.js';
 
 const app = document.getElementById('app');
 let atual = null; // { sair, temMudancas }
@@ -37,13 +39,16 @@ async function rotear() {
   const params = hash.match(rota[0]) || [];
   if (atual && atual.sair) try { atual.sair(); } catch { /* */ }
   atual = null; app.innerHTML = ''; app.className = 'app';
+  const NOMES = { 'editor.js': 'Abrindo a maquete…', 'passeio.js': 'Montando o bairro em 3D…', 'historia.js': 'Preparando a história…', 'comparar.js': 'Juntando os dois bairros…' };
+  const c = carregando('Carregando…');
   try {
     const mod = await rota[1]();
+    const nome = Object.keys(NOMES).find((n) => String(rota[1]).includes(n)); if (nome) c.texto(NOMES[nome]);
     atual = (await mod.montar(app, params.slice(1))) || null;
   } catch (e) {
     console.error(e);
     app.innerHTML = `<div class="tela" style="display:grid;place-items:center;text-align:center"><div><div style="font-size:54px">🚧</div><h2>Ops! Algo deu errado.</h2><p style="color:var(--tinta2);font-weight:700;margin:8px 0 16px">${String(e && e.message || e)}</p><a class="bt bt--sol" href="#/">Voltar ao início</a></div></div>`;
-  }
+  } finally { c.fechar(); }
 }
 addEventListener('hashchange', rotear);
 addEventListener('beforeunload', (e) => { if (atual && atual.temMudancas && atual.temMudancas()) { e.preventDefault(); e.returnValue = ''; } });
@@ -54,14 +59,15 @@ aoMudar((ev) => {
   if (ev.tipo === 'online') aviso('Internet de volta! Enviando o que ficou pendente ☁️');
 });
 
-// service worker: guarda o app para abrir sem internet. Versão nova = recarrega sozinho.
-if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-  const tinha = !!navigator.serviceWorker.controller; let recarregou = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (tinha && !recarregou && !(atual && atual.temMudancas && atual.temMudancas())) { recarregou = true; location.reload(); } });
-  navigator.serviceWorker.register('/sw.js').then((r) => r.update()).catch(() => {});
-}
+// atualização forçada (service worker por versão + conferência a cada minuto). Antes de recarregar, salva a maquete aberta.
+iniciarAtualizacoes();
+aoAtualizar(async () => { if (atual && atual.perguntarSaida && atual.temMudancas && atual.temMudancas()) await atual.perguntarSaida(); });
 
 await Promise.all([abertura(), iniciar()]);
+// link compartilhado /v/ID: abre a maquete (quem não entrou vira visitante)
+const linkV = location.pathname.match(/^\/v\/([\w-]{4,40})\/?$/);
+if (linkV) { if (precisaPorta()) virarVisitante(); history.replaceState(null, '', '/#/m/' + linkV[1]); }
 document.documentElement.dataset.armazenamento = estado.nuvem ? 'nuvem' : 'local';
 rotear();
 cookies();
+iniciarInstalar();

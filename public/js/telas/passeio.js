@@ -15,6 +15,7 @@ const hex = (s) => parseInt(String(s).replace('#', ''), 16);
 
 export async function montar(app, [id]) {
   const m = await abrir(id); if (!m) { location.hash = '#/'; return; }
+  await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 180))); // deixa a tela de carregando aparecer antes de montar o 3D
   const ix = indexar(m);
   app.classList.add('app--cheio');
   const t = el(`<div class="pas">
@@ -183,7 +184,7 @@ export async function montar(app, [id]) {
     const d = Math.hypot(x + .5 - cx, y + .5 - cz); if (d < melhor) { melhor = d; inicio = [x + .5, y + .5]; giro0 = h ? (x + .5 < cx ? -Math.PI / 2 : Math.PI / 2) : (y + .5 < cz ? Math.PI : 0); }
   }
   if (!inicio) inicio = [cx, cz];
-  const eu = { x: inicio[0], z: inicio[1], y: 0, vy: 0, giro: giro0 ?? (Math.atan2(-(cx - inicio[0]), -(cz - inicio[1])) || 0), olhar: -0.08, voar: false };
+  const eu = { x: inicio[0], z: inicio[1], y: 0, vy: 0, vx: 0, vz: 0, alvoGiro: null, alvoOlhar: null, giro: giro0 ?? (Math.atan2(-(cx - inicio[0]), -(cz - inicio[1])) || 0), olhar: -0.08, voar: false };
   const OLHO = .38, teclas = new Set(); let joy = { x: 0, y: 0 };
 
   // ------------------------------------------------ controles
@@ -192,14 +193,16 @@ export async function montar(app, [id]) {
   cv.addEventListener('click', () => { if (ultimoTipo === 'mouse' && document.pointerLockElement !== cv) cv.requestPointerLock?.(); });
   const mudouTrava = () => { ajuda.classList.toggle('esconde', document.pointerLockElement === cv); };
   document.addEventListener('pointerlockchange', mudouTrava);
-  const mouse = (e) => { if (document.pointerLockElement !== cv) return; eu.giro -= e.movementX * .0025; eu.olhar = Math.max(-1.4, Math.min(1.4, eu.olhar - e.movementY * .0025)); };
+  const mouse = (e) => { if (document.pointerLockElement !== cv) return; eu.alvoGiro = null; eu.alvoOlhar = null; eu.giro -= e.movementX * .0025; eu.olhar = Math.max(-1.4, Math.min(1.4, eu.olhar - e.movementY * .0025)); };
   document.addEventListener('mousemove', mouse);
-  const td = (e) => { const k = e.key.toLowerCase(); if (e.target.closest && e.target.closest('input,textarea')) return; teclas.add(k); if (k === ' ') { e.preventDefault(); pular(); } if (k === 'v') alternarVoo(); if (k.startsWith('arrow')) e.preventDefault(); };
+  const td = (e) => { const k = e.key.toLowerCase(); if (e.target.closest && e.target.closest('input,textarea')) return; teclas.add(k); if (k === ' ') { e.preventDefault(); if (!e.repeat) pular(); } if (k === 'v') alternarVoo(); if (k.startsWith('arrow')) e.preventDefault(); };
   const tu = (e) => teclas.delete(e.key.toLowerCase());
   document.addEventListener('keydown', td); document.addEventListener('keyup', tu);
-  function pular() { if (eu.voar) return; if (eu.y <= .001) eu.vy = 3.2; }
+  const GRAV = 22, PULO = 3.7; // pulo de ~0,3 da altura (proporção parecida com o Minecraft)
+  let segPular = false, segDescer = false;
+  function pular() { if (eu.voar) return; if (eu.y <= .001) eu.vy = PULO; }
   let correr = false;
-  function alternarVoo() { eu.voar = !eu.voar; t.querySelector('[data-p=voar]').classList.toggle('on', eu.voar); t.classList.toggle('voando', eu.voar); t.querySelector('[data-p=pular] small').textContent = eu.voar ? 'subir' : 'pular'; if (eu.voar) { eu.y = Math.max(eu.y, 2.5); aviso(toque ? '🕊️ Voando! Use ⤒ subir e ⤓ descer. Toque em 🕊️ para pousar.' : '🕊️ Voando! W/S andam, Espaço sobe, Shift desce. V para pousar.', 'ok', 3000); } }
+  function alternarVoo() { eu.vy = 0; eu.voar = !eu.voar; t.querySelector('[data-p=voar]').classList.toggle('on', eu.voar); t.classList.toggle('voando', eu.voar); t.querySelector('[data-p=pular] small').textContent = eu.voar ? 'subir' : 'pular'; if (eu.voar) { eu.y = Math.max(eu.y, 2.5); aviso(toque ? '🕊️ Voando! Use ⤒ subir e ⤓ descer. Toque em 🕊️ para pousar.' : '🕊️ Voando! W/S andam, Espaço sobe, Shift desce. V para pousar.', 'ok', 3000); } }
   // toque: joystick à esquerda e olhar à direita
   const joyEl = t.querySelector('.pas-joy'), bola = joyEl.querySelector('i'); let joyId = null, olharId = null, ultimo = null, joyCentro = null;
   // joystick: fica parado no canto; tocar em qualquer lugar da metade esquerda puxa ele para o dedo
@@ -213,17 +216,28 @@ export async function montar(app, [id]) {
   });
   cv.addEventListener('pointermove', (e) => {
     if (e.pointerId === joyId) { const dx = e.clientX - joyCentro[0], dy = e.clientY - joyCentro[1], dd = Math.min(50, Math.hypot(dx, dy)), a = Math.atan2(dy, dx); joy = dd < 6 ? { x: 0, y: 0 } : { x: Math.cos(a) * dd / 50, y: Math.sin(a) * dd / 50 }; bola.style.transform = `translate(${Math.cos(a) * dd}px, ${Math.sin(a) * dd}px)`; }
-    if (e.pointerId === olharId && ultimo && document.pointerLockElement !== cv) { const k = e.pointerType === 'mouse' ? .005 : .006; eu.giro -= (e.clientX - ultimo[0]) * k; eu.olhar = Math.max(-1.4, Math.min(1.4, eu.olhar - (e.clientY - ultimo[1]) * k)); ultimo = [e.clientX, e.clientY]; }
+    if (e.pointerId === olharId && ultimo && document.pointerLockElement !== cv) {
+      const k = e.pointerType === 'mouse' ? .005 : .0065; eu.alvoGiro = (eu.alvoGiro ?? eu.giro) - (e.clientX - ultimo[0]) * k; eu.alvoOlhar = Math.max(-1.4, Math.min(1.4, (eu.alvoOlhar ?? eu.olhar) - (e.clientY - ultimo[1]) * k)); ultimo = [e.clientX, e.clientY];
+    }
   });
   const fim = (e) => { if (e.pointerId === joyId) { joyId = null; joy = { x: 0, y: 0 }; joyCasa(); } if (e.pointerId === olharId) { olharId = null; ultimo = null; } };
   cv.addEventListener('pointerup', fim); cv.addEventListener('pointercancel', fim);
+  // botões grandes (pular, correr, descer): respondem no toque, junto com o joystick e com vários dedos
+  const bts = t.querySelector('.pas-bts');
+  bts.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('[data-p]'); if (!b) return; e.preventDefault(); b.setPointerCapture?.(e.pointerId); b.classList.add('apertado');
+    const a = b.dataset.p;
+    if (a === 'pular') { segPular = true; pular(); }
+    if (a === 'descer') segDescer = true;
+    if (a === 'correr') { correr = !correr; b.classList.toggle('on', correr); }
+  });
+  const soltarBt = (e) => { const b = e.target.closest('[data-p]'); if (!b) return; b.classList.remove('apertado'); if (b.dataset.p === 'pular') segPular = false; if (b.dataset.p === 'descer') segDescer = false; };
+  bts.addEventListener('pointerup', soltarBt); bts.addEventListener('pointercancel', soltarBt); bts.addEventListener('lostpointercapture', soltarBt);
   let noite = false;
   t.addEventListener('click', (e) => {
     const a = e.target.closest('[data-p]')?.dataset.p; if (!a) return;
     if (a === 'sair') { history.length > 1 ? history.back() : (location.hash = '#/m/' + m.id); }
-    if (a === 'voar') alternarVoo(); if (a === 'pular') { if (eu.voar) eu.y += .8; else pular(); }
-    if (a === 'descer') eu.y = Math.max(0, eu.y - .8);
-    if (a === 'correr') { correr = !correr; e.target.closest('button').classList.toggle('on', correr); }
+    if (a === 'voar') alternarVoo();
     if (a === 'noite') { noite = !noite; e.target.closest('button').textContent = noite ? '☀️' : '🌙'; trocarNoite(); }
   });
   function trocarNoite() {
@@ -250,7 +264,7 @@ export async function montar(app, [id]) {
   // ------------------------------------------------ laço
   function medir() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   medir(); addEventListener('resize', medir);
-  let vivo = true, antes = performance.now(), tMini = 0;
+  let vivo = true, antes = performance.now(), tMini = 0, passoFase = 0;
   function quadro(agora) {
     if (!vivo) return; const dt = Math.min(.05, (agora - antes) / 1000); antes = agora;
     let f = 0, l = 0;
@@ -258,16 +272,31 @@ export async function montar(app, [id]) {
     if (teclas.has('a')) l -= 1; if (teclas.has('d')) l += 1;
     if (teclas.has('arrowleft')) eu.giro += 2 * dt; if (teclas.has('arrowright')) eu.giro -= 2 * dt;
     f -= joy.y; l += joy.x;
-    const vel = ((teclas.has('shift') || correr) && !eu.voar ? 4.4 : eu.voar ? 5 : 2.3) * dt;
+    // velocidade desejada (joystick/teclas) -> a velocidade de verdade chega nela aos poucos (aceleração e freio suaves)
+    const mag = Math.hypot(f, l); if (mag > 1) { f /= mag; l /= mag; }
+    const max = eu.voar ? 5 : (teclas.has('shift') || correr) ? 4.6 : 2.6;
     const sx = -Math.sin(eu.giro), sz = -Math.cos(eu.giro);
-    let nx = eu.x + (sx * f - sz * l) * vel, nz = eu.z + (sz * f + sx * l) * vel;
-    if (eu.voar) { eu.x = nx; eu.z = nz; if (teclas.has(' ')) eu.y += 3 * dt; if (teclas.has('shift')) eu.y = Math.max(0, eu.y - 3 * dt); }
-    else {
+    const ax = (sx * f - sz * l) * max, az = (sz * f + sx * l) * max;
+    const k = 1 - Math.exp(-dt * (eu.y > .01 && !eu.voar ? 3.5 : 11)); // no ar dá para mudar pouco a direção (igual ao Minecraft)
+    eu.vx += (ax - eu.vx) * k; eu.vz += (az - eu.vz) * k;
+    if (Math.abs(eu.vx) < .002) eu.vx = 0; if (Math.abs(eu.vz) < .002) eu.vz = 0;
+    const nx = eu.x + eu.vx * dt, nz = eu.z + eu.vz * dt;
+    if (eu.voar) {
+      eu.x = nx; eu.z = nz;
+      const sobe = teclas.has(' ') || segPular, desce = teclas.has('shift') || segDescer;
+      eu.vy += (((sobe ? 3 : 0) - (desce ? 3 : 0)) - eu.vy) * Math.min(1, dt * 8); eu.y = Math.max(0, eu.y + eu.vy * dt);
+    } else {
       const folga = .15; const ok = (x, z) => livre(x + folga, z + folga) && livre(x - folga, z - folga) && livre(x + folga, z - folga) && livre(x - folga, z + folga);
-      if (ok(nx, eu.z)) eu.x = nx; if (ok(eu.x, nz)) eu.z = nz;
-      eu.vy -= 9 * dt; eu.y = Math.max(0, eu.y + eu.vy * dt); if (eu.y === 0) eu.vy = 0;
+      if (ok(nx, eu.z)) eu.x = nx; else eu.vx = 0;
+      if (ok(eu.x, nz)) eu.z = nz; else eu.vz = 0;
+      eu.vy -= GRAV * dt; eu.y += eu.vy * dt;
+      if (eu.y <= 0) { eu.y = 0; eu.vy = 0; if (teclas.has(' ') || segPular) pular(); } // segurando = pula de novo ao cair
     }
-    camera.position.set(eu.x, eu.y + OLHO + (f || l ? Math.sin(agora / 110) * .012 : 0), eu.z);
+    // olhar com o dedo: a câmera segue o dedo de leve (sem tremer)
+    if (eu.alvoGiro != null) { const kk = 1 - Math.exp(-dt * 18); eu.giro += (eu.alvoGiro - eu.giro) * kk; eu.olhar += (eu.alvoOlhar - eu.olhar) * kk; if (Math.abs(eu.alvoGiro - eu.giro) < .0005 && olharId == null) { eu.alvoGiro = null; eu.alvoOlhar = null; } }
+    const rapidez = Math.hypot(eu.vx, eu.vz); passoFase += rapidez * dt * 5.5;
+    const balanco = eu.y < .01 && !eu.voar ? Math.sin(passoFase) * .012 * Math.min(1, rapidez / 2.6) : 0;
+    camera.position.set(eu.x, eu.y + OLHO + balanco, eu.z);
     camera.rotation.set(0, 0, 0, 'YXZ'); camera.rotation.order = 'YXZ'; camera.rotation.y = eu.giro; camera.rotation.x = eu.olhar;
     pessoas.forEach((p) => { p.position.y = Math.abs(Math.sin(agora / 300 + p.userData.bob)) * .03; });
     fogos.forEach((x, i) => { x.scale.set(1 + Math.sin(agora / 80 + i) * .15, 1 + Math.cos(agora / 70 + i) * .2, 1 + Math.sin(agora / 90 + i) * .15); });

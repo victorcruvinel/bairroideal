@@ -26,6 +26,17 @@ for (const [nome, aparelho] of [['ipad', devices['iPad Pro 11 landscape']], ['ip
   // olhar: arrasta na direita
   const g0 = depois.giro; await toque('touchStart', [[vp.width * .75, vp.height * .4]]); for (let i = 1; i <= 5; i++) await toque('touchMove', [[vp.width * .75 - i * 20, vp.height * .4]]); await toque('touchEnd', []);
   const g1 = await p.evaluate(() => window.__eu.giro); assert.ok(Math.abs(g1 - g0) > .2, `${nome}: virou`);
+  // dois dedos: andando com o joystick E apertando pular ao mesmo tempo
+  const bp = await p.locator('[data-p=pular]').boundingBox(); const px = bp.x + bp.width / 2, py = bp.y + bp.height / 2;
+  const a0 = await p.evaluate(() => ({ ...window.__eu }));
+  await toque('touchStart', [[jx, jy]]); for (let i = 1; i <= 5; i++) await toque('touchMove', [[jx, jy - i * 9]]);
+  await p.waitForTimeout(300);
+  await toque('touchStart', [[jx, jy - 45], [px, py]]);
+  let maisAlto = 0; for (let i = 0; i < 12; i++) { await p.waitForTimeout(40); maisAlto = Math.max(maisAlto, await p.evaluate(() => window.__eu.y)); }
+  await toque('touchEnd', [[jx, jy - 45]]); await p.waitForTimeout(500); await toque('touchEnd', []);
+  const a1 = await p.evaluate(() => ({ ...window.__eu }));
+  assert.ok(maisAlto > .1, `${nome}: pulou andando (altura ${maisAlto.toFixed(2)})`); assert.ok(Math.hypot(a1.x - a0.x, a1.z - a0.z) > .5, `${nome}: continuou andando durante o pulo`);
+  console.log(`  ↳ pulou ${maisAlto.toFixed(2)} enquanto andava ${Math.hypot(a1.x - a0.x, a1.z - a0.z).toFixed(1)} quadradinhos`);
   // voar e descer
   await p.tap('[data-p=voar]'); assert.ok(await p.locator('[data-p=descer]').isVisible(), 'aparece descer ao voar');
   assert.deepEqual(erros, []); console.log(`✔ passeio no ${nome}: andou ${andou.toFixed(1)} quadradinhos e virou a câmera`);

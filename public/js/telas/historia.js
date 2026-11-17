@@ -54,7 +54,7 @@ export async function montar(app, [id]) {
   const t = el(`<div class="hist">
     <canvas></canvas>
     <div class="hist-topo"><div class="hist-prog">${caps.map((_, i) => `<i data-i="${i}"></i>`).join('')}</div>
-      <div class="hist-acoes"><button class="redondo" data-h="voz" title="Ler em voz alta">🔇</button><button class="redondo" data-h="play" title="Passar sozinho">▶</button><button class="redondo" data-h="sair" title="Sair (Esc)">✕</button></div></div>
+      <div class="hist-acoes"><button class="redondo" data-h="comp" title="Compartilhar">📤</button><button class="redondo" data-h="voz" title="Ler em voz alta">🔇</button><button class="redondo" data-h="play" title="Passar sozinho">▶</button><button class="redondo" data-h="sair" title="Sair (Esc)">✕</button></div></div>
     <div class="hist-nome"><b>${esc(m.nome)}</b> ${TIPOS[m.tipo] ? `<span>${TIPOS[m.tipo][0]} ${TIPOS[m.tipo][1]}</span>` : ''}${pos >= 0 ? `<span>🏛️ Bairro ${pos + 1} de ${tour.length}</span>` : ''}</div>
     <button class="hist-seta esq" data-h="ant" aria-label="Anterior">‹</button><button class="hist-seta dir" data-h="prox" aria-label="Próximo">›</button>
     <div class="hist-por">Bairro Ideal · por Elaine Freitas Muniz</div>
@@ -105,6 +105,7 @@ export async function montar(app, [id]) {
   t.addEventListener('click', (e) => {
     const h = e.target.closest('[data-h]')?.dataset.h; const pi = e.target.closest('.hist-prog i');
     if (pi) return ir(+pi.dataset.i);
+    if (h === 'comp') { import('../compartilhar.js').then((x) => x.compartilhar(m)); return; }
     if (h === 'ant') ir(i - 1); if (h === 'prox') { if (i === caps.length - 1 && proxId) return irProximo(); ir(i + 1); } if (h === 'play') alternarAuto();
     if (h === 'voz') { voz = !voz; e.target.closest('button').textContent = voz ? '🔊' : '🔇'; e.target.closest('button').classList.toggle('on', voz); falar(); if (!voz) programar(); }
     if (h === 'sair') { try { sessionStorage.removeItem('bi:tour'); } catch { /* */ } location.hash = pos >= 0 ? '#/' : '#/m/' + m.id; return; }

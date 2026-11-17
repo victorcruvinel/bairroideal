@@ -19,7 +19,7 @@ try {
   if (FOTOS) await p.screenshot({ path: FOTOS + '/16-codigo.png' });
   await p.click('.entrar-cx .bt--sol'); await p.waitForTimeout(2500);
   assert.equal(await p.evaluate(() => location.hash), '#/', 'entrou');
-  assert.match(await p.textContent('.ola h1'), /Victor/);
+  assert.match(await p.textContent('.heroi h1'), /Victor/);
   await p.waitForTimeout(2500);
   let pl = await (await fetch(URL0 + '/__planilha')).json(); assert.equal(pl.maquetes, 2, 'exemplos foram para a nuvem');
   // convidar

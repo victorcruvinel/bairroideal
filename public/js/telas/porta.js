@@ -21,7 +21,7 @@ export function montar(app) {
   const cv = t.querySelector('canvas'), A = indexar(bairroIdeal()), B = indexar(bairroCarente());
   const pintar = () => {
     const d = Math.min(2, devicePixelRatio || 1), W = innerWidth, H = innerHeight; cv.width = W * d; cv.height = H * d; const ctx = cv.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0);
-    if (W < 760) { ctx.save(); ctx.globalAlpha = .9; desenhar(ctx, A, enquadrar(A, W, H * .42, 0, false, .95), W, H * .42, {}); ctx.restore(); return; }
+    if (W < 760) { const topo = Math.min(150, H * .19), alt = H * .43 - topo; ctx.save(); ctx.translate(0, topo); desenhar(ctx, A, enquadrar(A, W, alt, 0, false, .95), W, alt, {}); ctx.restore(); return; }
     const w = W * .42, h = H * .6;
     ctx.save(); ctx.translate(-w * .12, H - h * .92); desenhar(ctx, A, enquadrar(A, w, h, 0, false, .95), w, h, {}); ctx.restore();
     ctx.save(); ctx.translate(W - w * .88, H - h * .92); desenhar(ctx, B, enquadrar(B, w, h, 1, false, .95), w, h, {}); ctx.restore();

@@ -11,7 +11,7 @@
  *       Executar como: Eu  ·  Quem pode acessar: Qualquer pessoa
  *     Copie o link que termina em /exec e coloque no Cloudflare (variável APPS_SCRIPT_URL).
  *
- * Abas criadas sozinhas: Usuarios, Sessoes, Maquetes, Dados, Registro.
+ * Abas criadas sozinhas: Usuarios, Sessoes, Maquetes, Dados, Artes, Registro.
  * Os e-mails não usam emoji (alguns leitores de e-mail estragam).
  */
 
@@ -27,6 +27,7 @@ var ABAS = {
   Sessoes: ['token', 'email', 'expira'],
   Maquetes: ['id', 'nome', 'tipo', 'cidade', 'dono', 'donoNome', 'criado', 'atualizado', 'nota', 'pecas', 'area', 'thumb', 'partes', 'publica'],
   Dados: ['id', 'partes', 'dados (em pedaços nas colunas seguintes)'],
+  Artes: ['id', 'partes', 'arte do WhatsApp (jpeg em pedaços)'],
   Registro: ['quando', 'para', 'assunto', 'enviado'],
 };
 
@@ -67,6 +68,8 @@ function rotear_(d) {
   if (acao === 'auth.confirmar') return comTrava_(function () { return authConfirmar_(d); });
   // modo visitante: só ler as maquetes que estão na exposição (sem login)
   if (acao === 'publico.listar') return { ok: true, maquetes: listarMaquetes_().filter(function (m) { return m.publica; }) };
+  if (acao === 'publico.meta') { var rm = acharMaquete_(d.id); if (!rm || String(rm.publica) === 'nao') return { ok: false, erro: 'nao_achou' }; return { ok: true, meta: metaDe_(rm) }; }
+  if (acao === 'publico.arte') { var ra = acharMaquete_(d.id); if (!ra || String(ra.publica) === 'nao') return { ok: false, erro: 'nao_achou' }; var arte = lerDados_(String(ra.id), 'Artes'); return arte ? { ok: true, arte: arte } : { ok: false, erro: 'sem_arte', thumb: String(ra.thumb || '') }; }
   if (acao === 'publico.abrir') { var rp = acharMaquete_(d.id); if (!rp || String(rp.publica) === 'nao') return { ok: false, erro: 'nao_achou' }; return abrirMaquete_(d.id); }
   var u = usuarioDaSessao_(d.sessao);
   if (!u) return { ok: false, erro: 'sessao' };
@@ -77,6 +80,7 @@ function rotear_(d) {
     case 'abrir': return abrirMaquete_(d.id);
     case 'salvar': return comTrava_(function () { return salvarMaquete_(d, u); });
     case 'excluir': return comTrava_(function () { return excluirMaquete_(d.id, u); });
+    case 'arte.salvar': return comTrava_(function () { return salvarArte_(d, u); });
     case 'pessoas.listar': return u.papel === 'admin' ? { ok: true, pessoas: listarPessoas_() } : { ok: false, erro: 'proibido' };
     case 'pessoas.convidar': return u.papel === 'admin' ? comTrava_(function () { return convidar_(d, u); }) : { ok: false, erro: 'proibido' };
     case 'pessoas.remover': return u.papel === 'admin' ? comTrava_(function () { return removerPessoa_(d.email, u); }) : { ok: false, erro: 'proibido' };
@@ -113,8 +117,8 @@ function metaDe_(r) {
 function listarMaquetes_() { return linhas_('Maquetes').map(metaDe_); }
 function acharMaquete_(id) { id = String(id || ''); return linhas_('Maquetes').filter(function (r) { return String(r.id) === id; })[0] || null; }
 
-function lerDados_(id) {
-  var sh = aba_('Dados'), n = sh.getLastRow(); if (n < 2) return null;
+function lerDados_(id, nomeAba) {
+  var sh = aba_(nomeAba || 'Dados'), n = sh.getLastRow(); if (n < 2) return null;
   var ids = sh.getRange(2, 1, n - 1, 1).getValues();
   for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) {
     var partes = Number(sh.getRange(i + 2, 2).getValue()) || 0; if (!partes) return '';
@@ -122,8 +126,8 @@ function lerDados_(id) {
   }
   return null;
 }
-function gravarDados_(id, texto) {
-  var sh = aba_('Dados'), partes = [];
+function gravarDados_(id, texto, nomeAba) {
+  var sh = aba_(nomeAba || 'Dados'), partes = [];
   for (var i = 0; i < texto.length; i += TAM_PARTE) partes.push('x' + texto.slice(i, i + TAM_PARTE)); // o "x" impede o Google de mexer no texto
   if (sh.getMaxColumns() < partes.length + 2) sh.insertColumnsAfter(sh.getMaxColumns(), partes.length + 2 - sh.getMaxColumns());
   var n = sh.getLastRow(), linha = 0;
@@ -133,8 +137,8 @@ function gravarDados_(id, texto) {
   sh.getRange(linha, 1, 1, partes.length + 2).setValues([[id, partes.length].concat(partes)]);
   return partes.length;
 }
-function apagarDados_(id) {
-  var sh = aba_('Dados'), n = sh.getLastRow(); if (n < 2) return;
+function apagarDados_(id, nomeAba) {
+  var sh = aba_(nomeAba || 'Dados'), n = sh.getLastRow(); if (n < 2) return;
   var ids = sh.getRange(2, 1, n - 1, 1).getValues();
   for (var j = ids.length - 1; j >= 0; j--) if (String(ids[j][0]) === id) sh.deleteRow(j + 2);
 }
@@ -162,10 +166,17 @@ function salvarMaquete_(d, u) {
   if (r) gravarLinha_('Maquetes', r._linha, o); else aba_('Maquetes').appendRow(paraLinha_('Maquetes', o));
   return { ok: true, atualizado: o.atualizado };
 }
+// arte para o WhatsApp (imagem jpeg em base64, feita pelo próprio app)
+function salvarArte_(d, u) {
+  var r = acharMaquete_(d.id); if (!r) return { ok: false, erro: 'nao_achou' };
+  if (normEmail_(r.dono) !== u.email && u.papel !== 'admin') return { ok: false, erro: 'proibido' };
+  var arte = String(d.arte || ''); if (!/^[A-Za-z0-9+/=]+$/.test(arte) || arte.length < 100 || arte.length > 900000) return { ok: false, erro: 'arte' };
+  gravarDados_(String(r.id), arte, 'Artes'); return { ok: true };
+}
 function excluirMaquete_(id, u) {
   var r = acharMaquete_(id); if (!r) return { ok: false, erro: 'nao_achou' };
   if (normEmail_(r.dono) !== u.email && u.papel !== 'admin') return { ok: false, erro: 'proibido' };
-  aba_('Maquetes').deleteRow(r._linha); apagarDados_(String(r.id)); return { ok: true };
+  aba_('Maquetes').deleteRow(r._linha); apagarDados_(String(r.id)); apagarDados_(String(r.id), 'Artes'); return { ok: true };
 }
 
 // ------------------------------------------------------------------ contas (login só com código no e-mail)
