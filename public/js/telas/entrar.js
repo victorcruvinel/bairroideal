@@ -19,7 +19,7 @@ const erroTxt = (r) => (r.erro === 'codigo' ? `Código errado. ${r.restam === 1 
 
 export function montar(app) {
   const t = el(`<div class="entrar">
-    <div class="entrar-arte"><canvas></canvas><div class="frase">Monte, compare e conte a história dos bairros. 🏘️</div></div>
+    <div class="entrar-arte"><canvas></canvas><div class="frase">Monte, compare e conte a história dos bairros. 🏘️<small>Bairro Ideal · por Elaine Freitas Muniz</small></div></div>
     <div class="entrar-lado"><div class="entrar-cx"></div></div></div>`);
   app.append(t);
   // desenho do bairro ao lado

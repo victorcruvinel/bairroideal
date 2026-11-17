@@ -16,9 +16,9 @@ export function montar(app) {
   const t = el(`<div class="tela"><article class="texto">
   <h1>Privacidade e cookies</h1>
   <p><small>Atualizada em 17 de novembro de 2026</small></p>
-  <p>O <b>Bairro Ideal</b> é um projeto acadêmico de <b>Victor Soares Cruvinel</b> para criar maquetes de bairros. Esta página explica, em linguagem simples, quais dados o site usa e por quê, de acordo com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).</p>
+  <p>O <b>Bairro Ideal</b>, da professora <b>Elaine Freitas Muniz</b>, é um site educativo para criar maquetes de bairros. Esta página explica, em linguagem simples, quais dados o site usa e por quê, de acordo com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).</p>
   <h2>1. Quem cuida dos seus dados</h2>
-  <p>O controlador é Victor Soares Cruvinel. Contato para qualquer assunto de privacidade: <b>hello@victorcruvinel.dev</b>.</p>
+  <p>Os dados são cuidados pela equipe responsável pelo Bairro Ideal. Contato para qualquer assunto de privacidade: <b>hello@victorcruvinel.dev</b>.</p>
   <h2>2. Quais dados usamos</h2>
   <table><tr><th>Dado</th><th>Para quê</th><th>Base legal</th></tr>
   <tr><td>Nome e e-mail</td><td>Criar a conta, enviar o código de acesso e os convites</td><td>Execução do serviço que você pediu</td></tr>
@@ -27,7 +27,7 @@ export function montar(app) {
   <p>Não pedimos CPF, endereço, telefone, localização, câmera nem microfone. Não vendemos nem compartilhamos dados para propaganda.</p>
   <h2>3. Onde os dados ficam</h2>
   <ul><li><b>No seu aparelho</b>: as maquetes ficam guardadas no navegador para o app funcionar mesmo sem internet.</li>
-  <li><b>Google (Planilhas e Gmail)</b>: as contas e as maquetes ficam numa planilha do Google do responsável pelo projeto, e os e-mails de código e convite saem pelo Gmail.</li>
+  <li><b>Google (Planilhas e Gmail)</b>: as contas e as maquetes ficam numa planilha do Google do responsável pelo site, e os e-mails de código e convite saem pelo Gmail.</li>
   <li><b>Cloudflare</b>: hospeda o site e faz a ponte com a planilha.</li>
   <li><b>Google Fonts</b>: as letras do site vêm do Google, que recebe o endereço IP de quem abre a página.</li></ul>
   <h2>4. Cookies e armazenamento no aparelho</h2>
@@ -48,6 +48,6 @@ export function montar(app) {
   <p>O app foi pensado para professores e turmas. Contas são criadas apenas por convite do administrador. Recomendamos não escrever dados pessoais de alunos nas histórias das maquetes.</p>
   <h2>9. Mudanças</h2>
   <p>Se esta política mudar, a data no topo será atualizada.</p>
-  </article><div class="rodape">Bairro Ideal · projeto acadêmico de Victor Soares Cruvinel</div></div>`);
+  </article><div class="rodape">Bairro Ideal · por Elaine Freitas Muniz</div></div>`);
   app.append(t);
 }

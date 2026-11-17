@@ -286,5 +286,5 @@ function moldura_(titulo, corpo) {
     '<div style="max-width:480px;margin:0 auto;background:#fffaf1;border:2px solid #e6dcc8;border-radius:20px;overflow:hidden">' +
     '<div style="background:#1f6f50;color:#fff;padding:16px 22px;font-size:20px;font-weight:800">' + NOME_APP + '</div>' +
     '<div style="padding:22px"><h1 style="margin:0 0 12px;font-size:22px">' + titulo + '</h1>' + corpo + '</div></div>' +
-    '<p style="text-align:center;color:#9a907e;font-size:12px;margin:14px 0 0">' + NOME_APP + ' · projeto acadêmico de Victor Soares Cruvinel</p></div>';
+    '<p style="text-align:center;color:#9a907e;font-size:12px;margin:14px 0 0">' + NOME_APP + ' · por Elaine Freitas Muniz</p></div>';
 }

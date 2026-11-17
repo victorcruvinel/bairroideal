@@ -29,7 +29,7 @@ export async function montar(app, [ida, idb]) {
     </div>
     <div class="cmp-vistas"></div>
     <div class="cmp-tab"></div>
-    <div class="rodape">Bairro Ideal · projeto acadêmico de Victor Soares Cruvinel</div>
+    <div class="rodape">Bairro Ideal · por Elaine Freitas Muniz</div>
   </div></div>`);
   app.append(t);
   let A, B, aA, aB, modo = 'lado', rot = 0, noite = false, corte = .5;

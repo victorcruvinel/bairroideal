@@ -57,6 +57,7 @@ export async function montar(app, [id]) {
       <div class="hist-acoes"><button class="redondo" data-h="voz" title="Ler em voz alta">🔇</button><button class="redondo" data-h="play" title="Passar sozinho">▶</button><button class="redondo" data-h="sair" title="Sair (Esc)">✕</button></div></div>
     <div class="hist-nome"><b>${esc(m.nome)}</b> ${TIPOS[m.tipo] ? `<span>${TIPOS[m.tipo][0]} ${TIPOS[m.tipo][1]}</span>` : ''}${pos >= 0 ? `<span>🏛️ Bairro ${pos + 1} de ${tour.length}</span>` : ''}</div>
     <button class="hist-seta esq" data-h="ant" aria-label="Anterior">‹</button><button class="hist-seta dir" data-h="prox" aria-label="Próximo">›</button>
+    <div class="hist-por">Bairro Ideal · por Elaine Freitas Muniz</div>
     <div class="hist-leg"><div class="hist-coruja">${CORUJA}</div><div class="hist-txt"><small></small><h2></h2><p></p></div></div>
   </div>`);
   app.append(t);

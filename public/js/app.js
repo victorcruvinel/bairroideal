@@ -31,6 +31,8 @@ async function rotear() {
     const ok = await atual.perguntarSaida(); if (!ok) { voltando = true; location.hash = ultimoHash; return; }
   }
   ultimoHash = hash;
+  // copiar e colar: só para quem entrou com a conta (o visitante não copia)
+  document.documentElement.dataset.copiar = !estado.visitante && (estado.nuvem ? !!estado.sessao : estado.editorLocal) ? 'sim' : 'nao';
   const rota = ROTAS.find(([re]) => re.test(hash)) || ROTAS[0];
   const params = hash.match(rota[0]) || [];
   if (atual && atual.sair) try { atual.sair(); } catch { /* */ }

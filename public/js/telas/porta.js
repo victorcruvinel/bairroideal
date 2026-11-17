@@ -9,12 +9,12 @@ export function montar(app) {
   const t = el(`<div class="porta">
     <canvas></canvas>
     <div class="porta-cx">
-      <div class="porta-logo"><img src="/img/icone.svg" alt="" width="72" height="72"><div><h1>Bairro Ideal</h1><p>Maquetes de bairros em 3D</p></div></div>
+      <div class="porta-logo"><img src="/img/icone.svg" alt="" width="72" height="72"><div><h1>Bairro Ideal</h1><p class="porta-por">por Elaine Freitas Muniz</p><p>Maquetes de bairros em 3D</p></div></div>
       <div class="porta-op">
         <button class="porta-bt porta-bt--visita" data-p="visitar"><span class="em">👀</span><b>Visitar a exposição</b><small>Veja os bairros em 3D, na planta, passeie por dentro e assista às histórias. Não precisa de conta.</small><i>Entrar como visitante ›</i></button>
         <button class="porta-bt porta-bt--conta" data-p="entrar"><span class="em">🔑</span><b>Entrar com a conta</b><small>Para quem cria: montar e editar maquetes, escrever as histórias e organizar a exposição.</small><i>${estado.nuvem ? 'Entrar com código no e-mail ›' : 'Criar e editar ›'}</i></button>
       </div>
-      <p class="porta-rod">Projeto acadêmico de Victor Soares Cruvinel · <a href="#/privacidade">Privacidade e cookies</a></p>
+      <p class="porta-rod">Bairro Ideal · por Elaine Freitas Muniz · <a href="#/privacidade">Privacidade e cookies</a></p>
     </div></div>`);
   app.append(t);
   // dois bairros de fundo, um de cada lado (ideal × carente)

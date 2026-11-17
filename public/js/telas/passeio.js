@@ -23,13 +23,15 @@ export async function montar(app, [id]) {
       <div class="pas-acoes"><button class="redondo" data-p="noite" title="Dia / noite">🌙</button><button class="redondo" data-p="voar" title="Voar (V)">🕊️</button></div></div>
     <canvas class="pas-mini" width="180" height="180"></canvas>
     <div class="pas-ajuda"><b>Clique para olhar com o mouse</b><span>W A S D ou setas: andar · Shift: correr · Espaço: pular · V: voar · Esc: soltar o mouse</span></div>
-    <div class="pas-joy" aria-hidden="true"><i></i></div>
-    <button class="pas-pulo" data-p="pular" aria-label="Pular">⤒</button>
+    <div class="pas-joy" aria-hidden="true"><i></i><span>andar</span></div>
+    <div class="pas-olhar" aria-hidden="true">👆 arraste aqui<br>para olhar em volta</div>
+    <div class="pas-bts"><button class="pas-b" data-p="correr" aria-label="Correr">🏃<small>correr</small></button><button class="pas-b" data-p="pular" aria-label="Pular ou subir">⤒<small>pular</small></button><button class="pas-b pas-desce" data-p="descer" aria-label="Descer">⤓<small>descer</small></button></div>
     <div class="pas-mira"></div>
   </div>`);
   app.append(t);
   const cv = t.querySelector('.pas-3d');
-  const toque = matchMedia('(pointer: coarse)').matches; t.classList.toggle('toque', toque);
+  // tela de toque (celular, tablet, iPad mesmo com teclado): mostra o joystick e os botões
+  const toque = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 || 'ontouchstart' in window; t.classList.toggle('toque', toque);
 
   // ------------------------------------------------ cena
   let renderer;
@@ -186,7 +188,8 @@ export async function montar(app, [id]) {
 
   // ------------------------------------------------ controles
   const ajuda = t.querySelector('.pas-ajuda');
-  cv.addEventListener('click', () => { if (!toque && document.pointerLockElement !== cv) cv.requestPointerLock?.(); });
+  let ultimoTipo = 'mouse';
+  cv.addEventListener('click', () => { if (ultimoTipo === 'mouse' && document.pointerLockElement !== cv) cv.requestPointerLock?.(); });
   const mudouTrava = () => { ajuda.classList.toggle('esconde', document.pointerLockElement === cv); };
   document.addEventListener('pointerlockchange', mudouTrava);
   const mouse = (e) => { if (document.pointerLockElement !== cv) return; eu.giro -= e.movementX * .0025; eu.olhar = Math.max(-1.4, Math.min(1.4, eu.olhar - e.movementY * .0025)); };
@@ -195,25 +198,32 @@ export async function montar(app, [id]) {
   const tu = (e) => teclas.delete(e.key.toLowerCase());
   document.addEventListener('keydown', td); document.addEventListener('keyup', tu);
   function pular() { if (eu.voar) return; if (eu.y <= .001) eu.vy = 3.2; }
-  function alternarVoo() { eu.voar = !eu.voar; t.querySelector('[data-p=voar]').classList.toggle('on', eu.voar); if (eu.voar) { eu.y = Math.max(eu.y, 2.5); aviso('🕊️ Voando! W/S andam, Espaço sobe, Shift desce. V para pousar.', 'ok', 3000); } }
+  let correr = false;
+  function alternarVoo() { eu.voar = !eu.voar; t.querySelector('[data-p=voar]').classList.toggle('on', eu.voar); t.classList.toggle('voando', eu.voar); t.querySelector('[data-p=pular] small').textContent = eu.voar ? 'subir' : 'pular'; if (eu.voar) { eu.y = Math.max(eu.y, 2.5); aviso(toque ? '🕊️ Voando! Use ⤒ subir e ⤓ descer. Toque em 🕊️ para pousar.' : '🕊️ Voando! W/S andam, Espaço sobe, Shift desce. V para pousar.', 'ok', 3000); } }
   // toque: joystick à esquerda e olhar à direita
   const joyEl = t.querySelector('.pas-joy'), bola = joyEl.querySelector('i'); let joyId = null, olharId = null, ultimo = null, joyCentro = null;
+  // joystick: fica parado no canto; tocar em qualquer lugar da metade esquerda puxa ele para o dedo
+  const joyCasa = () => { joyEl.style.left = ''; joyEl.style.top = ''; joyEl.classList.remove('on'); bola.style.transform = ''; };
   cv.addEventListener('pointerdown', (e) => {
-    if (!toque && e.pointerType === 'mouse') { ultimo = [e.clientX, e.clientY]; olharId = e.pointerId; return; }
-    if (e.clientX < innerWidth * .45 && joyId == null) { joyId = e.pointerId; joyCentro = [e.clientX, e.clientY]; joyEl.style.left = e.clientX + 'px'; joyEl.style.top = e.clientY + 'px'; joyEl.classList.add('on'); }
-    else if (olharId == null) { olharId = e.pointerId; ultimo = [e.clientX, e.clientY]; }
+    ultimoTipo = e.pointerType || 'mouse';
+    if (e.pointerType === 'mouse') { ultimo = [e.clientX, e.clientY]; olharId = e.pointerId; return; }
+    cv.setPointerCapture?.(e.pointerId);
+    if (e.clientX < innerWidth * .45 && joyId == null) { joyId = e.pointerId; joyCentro = [e.clientX, e.clientY]; joyEl.style.left = e.clientX + 'px'; joyEl.style.top = e.clientY + 'px'; joyEl.classList.add('on'); t.classList.add('mexeu'); }
+    else if (olharId == null) { olharId = e.pointerId; ultimo = [e.clientX, e.clientY]; t.classList.add('mexeu'); }
   });
   cv.addEventListener('pointermove', (e) => {
-    if (e.pointerId === joyId) { const dx = e.clientX - joyCentro[0], dy = e.clientY - joyCentro[1], dd = Math.min(50, Math.hypot(dx, dy)), a = Math.atan2(dy, dx); joy = { x: Math.cos(a) * dd / 50, y: Math.sin(a) * dd / 50 }; bola.style.transform = `translate(${Math.cos(a) * dd}px, ${Math.sin(a) * dd}px)`; }
-    if (e.pointerId === olharId && ultimo && document.pointerLockElement !== cv) { eu.giro -= (e.clientX - ultimo[0]) * .005; eu.olhar = Math.max(-1.4, Math.min(1.4, eu.olhar - (e.clientY - ultimo[1]) * .005)); ultimo = [e.clientX, e.clientY]; }
+    if (e.pointerId === joyId) { const dx = e.clientX - joyCentro[0], dy = e.clientY - joyCentro[1], dd = Math.min(50, Math.hypot(dx, dy)), a = Math.atan2(dy, dx); joy = dd < 6 ? { x: 0, y: 0 } : { x: Math.cos(a) * dd / 50, y: Math.sin(a) * dd / 50 }; bola.style.transform = `translate(${Math.cos(a) * dd}px, ${Math.sin(a) * dd}px)`; }
+    if (e.pointerId === olharId && ultimo && document.pointerLockElement !== cv) { const k = e.pointerType === 'mouse' ? .005 : .006; eu.giro -= (e.clientX - ultimo[0]) * k; eu.olhar = Math.max(-1.4, Math.min(1.4, eu.olhar - (e.clientY - ultimo[1]) * k)); ultimo = [e.clientX, e.clientY]; }
   });
-  const fim = (e) => { if (e.pointerId === joyId) { joyId = null; joy = { x: 0, y: 0 }; bola.style.transform = ''; joyEl.classList.remove('on'); } if (e.pointerId === olharId) { olharId = null; ultimo = null; } };
+  const fim = (e) => { if (e.pointerId === joyId) { joyId = null; joy = { x: 0, y: 0 }; joyCasa(); } if (e.pointerId === olharId) { olharId = null; ultimo = null; } };
   cv.addEventListener('pointerup', fim); cv.addEventListener('pointercancel', fim);
   let noite = false;
   t.addEventListener('click', (e) => {
     const a = e.target.closest('[data-p]')?.dataset.p; if (!a) return;
     if (a === 'sair') { history.length > 1 ? history.back() : (location.hash = '#/m/' + m.id); }
     if (a === 'voar') alternarVoo(); if (a === 'pular') { if (eu.voar) eu.y += .8; else pular(); }
+    if (a === 'descer') eu.y = Math.max(0, eu.y - .8);
+    if (a === 'correr') { correr = !correr; e.target.closest('button').classList.toggle('on', correr); }
     if (a === 'noite') { noite = !noite; e.target.closest('button').textContent = noite ? '☀️' : '🌙'; trocarNoite(); }
   });
   function trocarNoite() {
@@ -248,7 +258,7 @@ export async function montar(app, [id]) {
     if (teclas.has('a')) l -= 1; if (teclas.has('d')) l += 1;
     if (teclas.has('arrowleft')) eu.giro += 2 * dt; if (teclas.has('arrowright')) eu.giro -= 2 * dt;
     f -= joy.y; l += joy.x;
-    const vel = (teclas.has('shift') && !eu.voar ? 4.4 : eu.voar ? 5 : 2.3) * dt;
+    const vel = ((teclas.has('shift') || correr) && !eu.voar ? 4.4 : eu.voar ? 5 : 2.3) * dt;
     const sx = -Math.sin(eu.giro), sz = -Math.cos(eu.giro);
     let nx = eu.x + (sx * f - sz * l) * vel, nz = eu.z + (sz * f + sx * l) * vel;
     if (eu.voar) { eu.x = nx; eu.z = nz; if (teclas.has(' ')) eu.y += 3 * dt; if (teclas.has('shift')) eu.y = Math.max(0, eu.y - 3 * dt); }
@@ -267,7 +277,8 @@ export async function montar(app, [id]) {
     requestAnimationFrame(quadro);
   }
   requestAnimationFrame(quadro);
-  if (toque) ajuda.innerHTML = '<b>Use o dedo para passear</b><span>Lado esquerdo: andar · lado direito: olhar em volta</span>';
+  if (toque) ajuda.innerHTML = '<b>Use os dedos para passear</b><span>Joystick à esquerda: andar · arraste à direita: olhar em volta</span>';
+  window.__eu = eu; // para os testes automáticos
   setTimeout(() => ajuda.classList.add('some'), toque ? 5000 : 9000);
   return {
     sair: () => {

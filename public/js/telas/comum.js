@@ -14,7 +14,7 @@ export function topo({ voltar = false, titulo = '' } = {}) {
   const u = estado.usuario;
   const t = el(`<header class="topo">
     ${voltar ? '<a class="redondo" href="#/" aria-label="Voltar">‹</a>' : ''}
-    <a class="logo" href="#/"><img src="/img/icone.svg" alt="">${titulo ? esc(titulo) : 'Bairro Ideal'}</a>
+    <a class="logo" href="#/"><img src="/img/icone.svg" alt=""><span>${titulo ? esc(titulo) : 'Bairro Ideal'}${titulo ? '' : '<small class="logo-por">por Elaine Freitas Muniz</small>'}</span></a>
     <div class="topo-dir">
       ${estado.visitante ? `<span class="chip chip-visita">👀 Visitante</span><button class="bt bt--verde" data-t="entrar">🔑 Entrar</button><button class="bt bt--leve" data-t="porta" title="Voltar para a porta de entrada">🚪</button>` : `
       <span class="nuvem-st ${estado.nuvem && estado.sessao ? '' : 'off'}"><i></i>${estado.nuvem && estado.sessao ? 'Salvando na nuvem' : 'Salvo neste aparelho'}</span>

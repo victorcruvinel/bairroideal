@@ -2,7 +2,7 @@
 
 Aplicativo para montar **maquetes de bairros em 3D**, como um joguinho: ruas, casas, prédios, escola, posto de saúde, praça, lago, árvores, pessoas… e também os problemas de um **bairro carente** (barracos, lixo, esgoto a céu aberto, rua de terra). Dá para comparar os dois lado a lado e contar a história de cada bairro.
 
-Projeto acadêmico de **Victor Soares Cruvinel**. Site: **https://bairroideal.victorcruvinel.dev**
+Bairro Ideal · **por Elaine Freitas Muniz**. Site: **https://bairroideal.victorcruvinel.dev**
 
 ## O que o app faz
 - **Porta de entrada** depois da abertura: **👀 Visitar a exposição** (sem conta, só olhar) ou **🔑 Entrar com a conta** (criar e editar).
@@ -17,7 +17,7 @@ Projeto acadêmico de **Victor Soares Cruvinel**. Site: **https://bairroideal.vi
 - **Comparar**: lado a lado ou com cortina deslizante, mais a tabela de diferenças.
 - **Contas**: login só com **código no e-mail**. O primeiro acesso é do administrador (hello@victorcruvinel.dev), que convida as outras pessoas na tela **Pessoas**.
 - **Funciona sem internet** (tudo é salvo no aparelho e sobe para a planilha quando a internet volta).
-- **Proteção**: sem botão direito, sem copiar/colar e sem zoom de pinça. **Política de privacidade e cookies** (LGPD) em `#/privacidade`.
+- **Proteção**: sem botão direito e sem zoom de pinça. Copiar e colar só para quem entrou com a conta (visitante não copia). **Política de privacidade e cookies** (LGPD) em `#/privacidade`.
 
 Sem a planilha ligada, o site funciona em **modo local**: não pede login e guarda as maquetes só no aparelho.
 

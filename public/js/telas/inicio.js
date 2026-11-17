@@ -15,7 +15,7 @@ export async function montar(app) {
     <div class="modelos">${MODELOS.map((x) => `<button class="modelo" data-m="${x.id}"><span class="em">${x.emoji}</span><span><b>${x.nome}</b><small>${x.desc}</small></span></button>`).join('')}</div>
     <div id="equipe"></div>
     <div class="dica-cx" style="margin-top:22px">💡 Dica: use <b>Duplicar</b> numa maquete para transformar o bairro ideal no carente (ou o contrário) e depois <b>Comparar</b> os dois lado a lado.</div>
-    <div class="rodape">Bairro Ideal · projeto acadêmico de Victor Soares Cruvinel · <a href="#/privacidade">Privacidade e cookies</a></div>
+    <div class="rodape">Bairro Ideal · por Elaine Freitas Muniz · <a href="#/privacidade">Privacidade e cookies</a></div>
   </div></div>`);
   app.append(tela);
   tela.querySelectorAll('.modelo').forEach((b) => { b.onclick = async () => { const m = await novaMaquete(b.dataset.m); if (m) location.hash = '#/m/' + m.id; }; });
@@ -90,7 +90,7 @@ async function exposicao(app) {
       <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap"><button class="bt bt--sol bt--gde" id="tour">▶ Apresentar todos</button><a class="bt bt--gde" href="#/comparar">⚖️ Comparar</a></div></div>
     <div class="grade-m" id="expo"><div class="vazio-lista" style="grid-column:1/-1">Carregando a exposição…</div></div>
     <div class="dica-cx" style="margin-top:22px">👀 Você está no <b>modo visitante</b>: dá para ver tudo, mas não dá para mudar nada. Quem tem conta pode tocar em <b>🔑 Entrar</b> para editar.</div>
-    <div class="rodape">Bairro Ideal · projeto acadêmico de Victor Soares Cruvinel · <a href="#/privacidade">Privacidade e cookies</a></div>
+    <div class="rodape">Bairro Ideal · por Elaine Freitas Muniz · <a href="#/privacidade">Privacidade e cookies</a></div>
   </div></div>`);
   app.append(tela);
   // sem planilha, na 1ª vez: já deixa os dois bairros de exemplo na exposição

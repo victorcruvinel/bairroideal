@@ -22,6 +22,11 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Sem planilha (modo local): "Entrar" = `editarLocal()` (sessionStorage `bi:editor-local`).
 - **Matemática** (`matematica.js`): aba 📐 em estilo lousa (fonte Caveat), régua (tecla M), plano cartesiano (y cresce para cima: y = −linha), linha "Em números" no Comparar e capítulo "O bairro em números" na história automática.
 
+## Rodada 3
+- O site é um **presente para a professora**: nome do Victor fora do site. Marca: "Bairro Ideal" + embaixo "por Elaine Freitas Muniz" (abertura, porta, topo, entrar, história, rodapés, e-mails).
+- Copiar/colar: liberado só com conta (`data-copiar="sim"` no `<html>`, definido no router); visitante bloqueado.
+- Passeio: controles de toque sempre que a tela aceita toque (joystick fixo, correr, pular/subir, descer ao voar). Teste: `node test/passeio-toque.mjs` (iPad e iPhone com toque simulado).
+
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).
 - Branch de trabalho: `claude/bairro-ideal-mockup-app-6j87sk`.
