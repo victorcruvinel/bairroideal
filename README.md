@@ -5,6 +5,9 @@ Aplicativo para montar **maquetes de bairros em 3D**, como um joguinho: ruas, ca
 Projeto acadêmico de **Victor Soares Cruvinel**. Site: **https://bairroideal.victorcruvinel.dev**
 
 ## O que o app faz
+- **Porta de entrada** depois da abertura: **👀 Visitar a exposição** (sem conta, só olhar) ou **🔑 Entrar com a conta** (criar e editar).
+- **Modo visitante**: vê todas as maquetes marcadas como "Mostrar na exposição" (3D, planta, passeio, história, comparar, termômetro e matemática), sem conseguir editar. **▶ Apresentar todos** passa a história de um bairro depois do outro. As maquetes vistas ficam guardadas para apresentar sem internet.
+- **Matemática** (aba 📐): área, perímetro, frações do uso do solo (com gráfico de pizza), densidade demográfica, verde por morador, distância até a escola (média, mediana e Pitágoras), a nota como média, escala da maquete. **📏 Régua** mede a reta entre dois pontos (Δx, Δy, √(Δx²+Δy²), caminho a pé, inclinação e ângulo) e **x y** mostra o plano cartesiano.
 - **Abertura animada** toda vez que abre (o bairro se monta sozinho).
 - **Editor**: barra de peças embaixo (mais de 65 peças em 7 categorias), ferramentas (colocar, mover, apagar, aumentar e cortar o terreno, balde, crescer), pincel de 3 tamanhos, girar, desfazer/refazer, cores diferentes para cada peça.
 - **Mapa do tamanho que quiser**: o terreno cresce para qualquer lado e pode ser recortado em qualquer formato.

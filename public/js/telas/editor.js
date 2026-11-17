@@ -1,8 +1,9 @@
 // Bairro Ideal · editor da maquete: mapa 3D/planta, barra de peças (embaixo), ferramentas (esquerda),
 // painel com termômetro, metas, sobre o bairro e capítulos da história (direita).
 import { el, esc, janela, aviso, balao, confete, confirmar, num } from '../ui.js';
-import { abrir, salvar, aoMudar, estado, podeEditar, ehMinha, duplicar } from '../dados.js';
-import { indexar, desenhar, celulaEm, deltaMundo, enquadrar, miniatura, caixaGirada, lapis, K, tamanho, TW, TH, TP } from '../motor.js';
+import { abrir, salvar, aoMudar, estado, podeEditar, ehMinha, duplicar, sairVisitante } from '../dados.js';
+import { indexar, desenhar, celulaEm, deltaMundo, enquadrar, miniatura, caixaGirada, lapis, K, tamanho, girar, TW, TH, TP } from '../motor.js';
+import { calcular, medir as medirReta, coord, fracao, fmt, GRUPOS, LADO } from '../matematica.js';
 import { CATEGORIAS, TODAS, OBJETOS, CHAOS, SINONIMOS, peca } from '../pecas.js';
 import { analisar, dicas, INDICADORES } from '../termometro.js';
 import { chipTipo, TIPOS, notaTxt, corNota, prepararParaSalvar } from './comum.js';
@@ -27,7 +28,7 @@ export async function montar(app, [id]) {
 
   const S = {
     ferr: edita ? 'colocar' : 'mao', peca: edita ? 'casa' : null, cor: 0, rot: 0, pincel: 1, cat: pref.cat || 'casas', busca: '',
-    planta: false, noite: false, sel: null, hover: null, cam: null, painel: pref.painel ?? innerWidth > 980, aba: pref.aba || 'termo',
+    planta: false, noite: false, eixos: false, regua: { on: false, a: null, b: null }, sel: null, hover: null, cam: null, painel: pref.painel ?? innerWidth > 980, aba: pref.aba || 'termo',
   };
   let ix = indexar(m), sujo = false, quadroPedido = false, analise = analisar(m), desfazer = [], refazer = [], salvarTimer = null, salvando = false, pendente = false;
 
@@ -47,7 +48,7 @@ export async function montar(app, [id]) {
         <button class="redondo ed-bt-painel" data-a="painel" title="Informações do bairro">📊</button>
       </div>
     </header>
-    ${edita ? '' : `<div class="ed-faixa">👀 Maquete de <b>${esc(m.donoNome || m.dono || 'outra pessoa')}</b>. Você pode ver, passear e apresentar. <button class="bt bt--sol" data-a="duplicar">📄 Fazer uma cópia para editar</button></div>`}
+    ${edita ? '' : estado.visitante ? `<div class="ed-faixa">👀 <span><b>Modo visitante</b>: olhe à vontade, gire, veja a planta, a matemática e a história.</span> <button class="bt bt--verde" data-a="entrar">🔑 Entrar para editar</button></div>` : `<div class="ed-faixa">👀 Maquete de <b>${esc(m.donoNome || m.dono || 'outra pessoa')}</b>. Você pode ver, passear e apresentar. <button class="bt bt--sol" data-a="duplicar">📄 Fazer uma cópia para editar</button></div>`}
     <div class="ed-dica"></div>
     <div class="ed-ferr" role="toolbar" aria-label="Ferramentas">
       ${FERRAMENTAS.map(([f, e, n]) => `<button class="ed-f" data-f="${f}" title="${n}"><span>${e}</span><small>${n}</small></button>`).join('')}
@@ -58,8 +59,10 @@ export async function montar(app, [id]) {
       <button class="redondo" data-a="girar" title="Girar a vista (Q / E)">↻</button>
       <button class="redondo" data-a="mais" title="Aproximar">＋</button><button class="redondo" data-a="menos" title="Afastar">－</button>
       <button class="redondo" data-a="tudo" title="Ver o mapa inteiro">⌖</button><button class="redondo" data-a="noite" title="Dia / noite (N)">🌙</button>
+      <button class="redondo" data-a="regua" title="Régua: meça a distância entre dois pontos (M)">📏</button><button class="redondo ed-xy" data-a="eixos" title="Plano cartesiano (eixos x e y)"><i>x</i><i>y</i></button>
     </div>
     <div class="ed-sel esconde"></div>
+    <div class="ed-regua lousa esconde"></div>
     <section class="ed-doca">
       <div class="ed-doca-top">
         <div class="ed-cats">${CATEGORIAS.map((c) => `<button data-cat="${c.id}"><span style="background:${c.cor}">${c.emoji}</span>${c.nome}</button>`).join('')}</div>
@@ -69,7 +72,7 @@ export async function montar(app, [id]) {
       <div class="ed-pecas" role="listbox" aria-label="Peças"></div>
     </section>
     <aside class="ed-painel" aria-label="Sobre o bairro">
-      <div class="ed-abas"><button data-aba="termo"><span>🌡️</span>Termômetro</button><button data-aba="metas"><span>🎯</span>Metas</button><button data-aba="sobre"><span>📝</span>Sobre</button><button data-aba="caps"><span>📖</span>Capítulos</button></div>
+      <div class="ed-abas"><button data-aba="termo"><span>🌡️</span>Termômetro</button><button data-aba="metas"><span>🎯</span>Metas</button><button data-aba="sobre"><span>📝</span>Sobre</button><button data-aba="caps"><span>📖</span>Capítulos</button><button data-aba="mat"><span>📐</span>Matemática</button></div>
       <div class="ed-aba-c"></div>
     </aside>
   </div>`);
@@ -113,8 +116,60 @@ export async function montar(app, [id]) {
     const opt = { noite: S.noite, planta: S.planta, selecionado: S.sel, marcas: marcasPincel() };
     const f = fantasma(); if (f) opt.fantasma = f;
     const r = desenhar(ctx, ix, S.cam, W, H, opt); ultimosDesenhados = r.desenhados;
+    if (S.eixos) desenharEixos(); if (S.regua.on) desenharRegua();
     if (S.sel) posicionarSel();
   }
+  // ponto do mundo (centro do quadradinho x,y) na tela
+  function noTela(x, y, z = 0) { const G = lapis(ctx, S.cam, W, H, { planta: S.planta }); const [X, Y] = girar(S.cam.rot || 0, x + .5, y + .5); return G.P(X, Y, z); }
+  function rotulo(txt, p, fundo = '#2b2a33', cor = '#fff', tam = 12) {
+    ctx.font = `800 ${tam}px Nunito, sans-serif`; const w = ctx.measureText(txt).width + 12, h = tam + 8;
+    ctx.fillStyle = fundo; ctx.beginPath(); ctx.roundRect(p[0] - w / 2, p[1] - h / 2, w, h, h / 2); ctx.fill(); ctx.fillStyle = cor; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, p[0], p[1] + .5);
+  }
+  function seta(a, b, cor, lw = 2.5) {
+    ctx.strokeStyle = cor; ctx.fillStyle = cor; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]); ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(b[0] - 11 * Math.cos(ang - .4), b[1] - 11 * Math.sin(ang - .4)); ctx.lineTo(b[0] - 11 * Math.cos(ang + .4), b[1] - 11 * Math.sin(ang + .4)); ctx.closePath(); ctx.fill();
+  }
+  function desenharEixos() {
+    const { x0, y0, x1, y1 } = ix.lim; const passo = S.cam.z * (S.planta ? TP : TW / 2) > 20 ? 1 : S.cam.z * (S.planta ? TP : TW / 2) > 8 ? 5 : 10;
+    const cor = S.noite ? '#ffe39a' : '#1d3557';
+    ctx.save(); ctx.globalAlpha = .9;
+    seta(noTela(Math.min(x0, 0) - 1, 0), noTela(Math.max(x1, 0) + 1, 0), cor); seta(noTela(0, Math.max(y1, 0) + 1), noTela(0, Math.min(y0, 0) - 2), cor);
+    for (let x = Math.min(x0, 0); x <= Math.max(x1, 0); x++) if (x && x % passo === 0) rotulo(String(x), noTela(x, 0), '#fff', '#1d3557', 11);
+    for (let y = Math.min(y0, 0); y <= Math.max(y1, 0); y++) if (y && y % passo === 0) rotulo(String(-y), noTela(0, y), '#fff', '#1d3557', 11);
+    rotulo('O (0, 0)', noTela(0, 0), '#1d3557'); rotulo('x', noTela(Math.max(x1, 0) + 1.6, 0), cor, '#fff', 13); rotulo('y', noTela(0, Math.min(y0, 0) - 2.6), cor, '#fff', 13);
+    ctx.restore();
+  }
+  function desenharRegua() {
+    const { a } = S.regua; const b = S.regua.b || (a ? S.hover : null); if (!a) return;
+    const z = S.planta ? 0 : 4, pa = noTela(a.x, a.y, z);
+    ctx.save();
+    if (b && (b.x !== a.x || b.y !== a.y)) {
+      const pb = noTela(b.x, b.y, z), pc = noTela(b.x, a.y, z);
+      ctx.setLineDash([6, 5]); ctx.strokeStyle = 'rgba(29,53,87,.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pc[0], pc[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = '#ff7a59'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke();
+      const r = medirReta(a, b); rotulo(`${fmt(r.metros, 1)} m`, [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2 - 14], '#ff7a59');
+      if (r.dx) rotulo(`Δx = ${Math.abs(r.dx)}`, [(pa[0] + pc[0]) / 2, (pa[1] + pc[1]) / 2 + 12], '#fff', '#1d3557', 11);
+      if (r.dy) rotulo(`Δy = ${Math.abs(r.dy)}`, [(pc[0] + pb[0]) / 2, (pc[1] + pb[1]) / 2 + 12], '#fff', '#1d3557', 11);
+      ctx.fillStyle = '#ff7a59'; ctx.beginPath(); ctx.arc(pb[0], pb[1], 7, 0, 7); ctx.fill(); rotulo('B ' + coord(b), [pb[0], pb[1] - 22], '#2b2a33');
+    }
+    ctx.fillStyle = '#1f6f50'; ctx.beginPath(); ctx.arc(pa[0], pa[1], 7, 0, 7); ctx.fill(); rotulo('A ' + coord(a), [pa[0], pa[1] - 22], '#1f6f50');
+    ctx.restore();
+  }
+  const reguaEl = $('.ed-regua');
+  function atualizarRegua() {
+    const { on, a, b } = S.regua; ed.querySelector('[data-a=regua]').classList.toggle('on', on); ed.classList.toggle('com-regua', on);
+    if (!on) { reguaEl.classList.add('esconde'); return; } reguaEl.classList.remove('esconde');
+    if (!a) { reguaEl.innerHTML = '<h4>📏 Régua</h4><p>Toque no ponto <b>A</b> e depois no ponto <b>B</b>.</p><button data-r="fechar">✕</button>'; return; }
+    if (!b) { reguaEl.innerHTML = `<h4>📏 Régua</h4><p>A = ${coord(a)}. Agora toque no ponto <b>B</b>.</p><button data-r="fechar">✕</button>`; return; }
+    const r = medirReta(a, b);
+    reguaEl.innerHTML = `<h4>📏 Distância de A até B</h4><button data-r="fechar">✕</button>
+      <p class="f">A ${coord(a)} → B ${coord(b)}</p><p class="f">Δx = ${r.dx} · Δy = ${r.dy}</p>
+      <p class="f">d = √(Δx² + Δy²) = √(${r.dx * r.dx} + ${r.dy * r.dy}) = √${r.dx * r.dx + r.dy * r.dy} ≈ ${fmt(r.d, 2)}</p>
+      <p class="f">${fmt(r.d, 2)} × ${LADO} m ≈ <b>${fmt(r.metros, 1)} m</b> em linha reta</p>
+      <p class="f">A pé pelas quadras: (|Δx| + |Δy|) × ${LADO} = <b>${fmt(r.aPe)} m</b></p>
+      <small>${r.inclinacao == null ? 'Reta vertical (Δx = 0).' : `Inclinação da reta: m = Δy ÷ Δx = ${fmt(r.inclinacao, 2)} · ângulo ≈ ${fmt(r.ang, 1)}°`}</small>`;
+  }
+  reguaEl.addEventListener('click', (e) => { if (e.target.closest('[data-r=fechar]')) { S.regua = { on: false, a: null, b: null }; atualizarRegua(); pedir(); } });
   function estrelas() { ctx.fillStyle = 'rgba(255,255,255,.75)'; for (let i = 0; i < 70; i++) { const x = (i * 197.3) % W, y = (i * 71.9) % (H * .6); ctx.fillRect(x, y, 1.6, 1.6); } }
   new ResizeObserver(medir).observe(cv);
 
@@ -233,6 +288,11 @@ export async function montar(app, [id]) {
     if (ponteiros.size === 2) { if (gesto && gesto.tipo !== 'mapa') { terminarMudanca(); } gesto = { tipo: 'mapa', dois: true, ultimo: centro() }; S.arrastandoMapa = true; return; }
     if (ponteiros.size > 2) return;
     const [x, y] = pos(e), c = cel(x, y); S.hover = c;
+    if (S.regua.on && e.button === 0 && !espaco) {
+      if (!ix.chao.has(K(c.x, c.y))) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y] }; return; }
+      if (!S.regua.a || S.regua.b) S.regua = { on: true, a: c, b: null }; else S.regua.b = c;
+      atualizarRegua(); pedir(); gesto = { tipo: 'nada' }; return;
+    }
     const pan = e.button === 1 || e.button === 2 || espaco || !edita;
     if (pan) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y] }; return; }
     const p = pecaAtual();
@@ -305,6 +365,7 @@ export async function montar(app, [id]) {
     if (k === 'r') { if (S.sel) girarSel(); else { S.rot = (S.rot + 1) % 4; pedir(); } }
     else if (k === 'q' || k === 'e') girarVista(k === 'e' ? 1 : 3);
     else if (k === 'n') alternarNoite();
+    else if (k === 'm') ed.querySelector('[data-a=regua]').click();
     else if (k === '+' || k === '=') zoom(1.2); else if (k === '-') zoom(1 / 1.2);
     else if ((k === 'delete' || k === 'backspace') && S.sel) apagarSel();
     else if (k === 'escape') { S.sel = null; esconderSel(); S.peca = null; desenharPecas(); pedir(); }
@@ -363,7 +424,10 @@ export async function montar(app, [id]) {
     if (a === 'desfazer') voltar(desfazer, refazer); if (a === 'refazer') voltar(refazer, desfazer);
     if (a === 'girar') girarVista(1); if (a === 'mais') zoom(1.25); if (a === 'menos') zoom(1 / 1.25); if (a === 'tudo') enquadrarTudo(); if (a === 'noite') alternarNoite();
     if (a === 'crescer') crescer();
+    if (a === 'regua') { S.regua = S.regua.on ? { on: false, a: null, b: null } : { on: true, a: null, b: null }; S.sel = null; esconderSel(); atualizarRegua(); pedir(); }
+    if (a === 'eixos') { S.eixos = !S.eixos; ed.querySelector('[data-a=eixos]').classList.toggle('on', S.eixos); ed.classList.toggle('com-eixos', S.eixos); if (S.eixos) aviso('📊 Plano cartesiano: cada quadradinho é um ponto (x, y). O eixo y cresce para cima.', 'ok', 3500); pedir(); }
     if (a === 'painel') { S.painel = !S.painel; ed.classList.toggle('com-painel', S.painel); guardarPref(); if (S.painel) desenharAba(); }
+    if (a === 'entrar') { sairVisitante(); location.hash = estado.nuvem ? '#/entrar' : '#/porta'; return; }
     if (a === 'duplicar') { const c = await duplicar(m, m.nome + ' (minha cópia)'); aviso('Cópia criada! Agora é sua 😊'); location.hash = '#/m/' + c.id; }
   });
   $('.ed-nome').onclick = () => { S.painel = true; ed.classList.add('com-painel'); S.aba = 'sobre'; desenharAba(); setTimeout(() => ed.querySelector('[name=nome]')?.focus(), 50); };
@@ -427,9 +491,11 @@ export async function montar(app, [id]) {
         <div class="campo">Tipo de bairro<div class="tipos">${Object.entries(TIPOS).map(([k, [e, n]]) => `<button data-tipo="${k}" class="${m.tipo === k ? 'on' : ''}" ${edita ? '' : 'disabled'}>${e} ${n}</button>`).join('')}</div></div>
         <label class="campo">Cidade (opcional)<input name="cidade" maxlength="60" value="${esc(m.cidade || '')}" placeholder="Ex.: Uberlândia - MG" ${edita ? '' : 'disabled'}></label>
         <label class="campo">A história do bairro<textarea name="historia" maxlength="6000" rows="9" placeholder="Como o bairro nasceu? Quem mora aqui? O que tem de bom e o que precisa melhorar?" ${edita ? '' : 'disabled'}>${esc(m.historia || '')}</textarea></label>
+        <label class="ed-pub"><input type="checkbox" name="publica" ${m.publica !== false ? 'checked' : ''} ${edita ? '' : 'disabled'}><span><b>🏛️ Mostrar na exposição</b><small>Visitantes (sem conta) podem ver esta maquete.</small></span></label>
         <p class="ed-p">📏 Terreno com <b>${num(c.area)}</b> quadradinhos e <b>${num(c.pecas)}</b> peças. Para aumentar, use <b>🟩 Aumentar</b> ou <b>⤢ Crescer</b>; para recortar, <b>✂️ Cortar</b>.</p>`;
       abaC.oninput = (e) => {
-        const n = e.target.name; if (!['nome', 'cidade', 'historia'].includes(n)) return; m[n] = e.target.value;
+        const n = e.target.name; if (n === 'publica') { m.publica = e.target.checked; mudouTexto(); aviso(m.publica ? '🏛️ Agora aparece na exposição' : '🔒 Saiu da exposição'); return; }
+        if (!['nome', 'cidade', 'historia'].includes(n)) return; m[n] = e.target.value;
         if (n === 'nome') ed.querySelector('.ed-nome b').textContent = m.nome || 'Sem nome'; mudouTexto();
       };
       abaC.querySelectorAll('[data-tipo]').forEach((b) => { b.onclick = () => { m.tipo = b.dataset.tipo; ed.querySelector('.ed-nome').innerHTML = `<b>${esc(m.nome)}</b>${chipTipo(m.tipo)}`; desenharAba(); mudouTexto(); }; });
@@ -456,7 +522,26 @@ export async function montar(app, [id]) {
       };
       return;
     }
+    if (S.aba === 'mat') { abaC.innerHTML = abaMatematica(); abaC.oninput = null; abaC.onclick = (e) => { if (e.target.closest('[data-mat=regua]') && !S.regua.on) ed.querySelector('[data-a=regua]').click(); if (e.target.closest('[data-mat=eixos]') && !S.eixos) ed.querySelector('[data-a=eixos]').click(); }; return; }
     abaC.oninput = null; abaC.onclick = (e) => { const b = e.target.closest('[data-ind]'); if (b) { const i = INDICADORES.find((x) => x.id === b.dataset.ind); aviso(`${i.emoji} <b>${i.nome}</b>: ${esc(i.explica)}`, 'ok', 5000); } };
+  }
+  function abaMatematica() {
+    const M = calcular(m, analise); const g = GRUPOS.filter((x) => M.uso[x.id]);
+    let ac = 0; const pizza = g.map((x) => { const de = ac; ac += M.uso[x.id] / M.n * 360; return `${x.cor} ${de}deg ${ac}deg`; }).join(',');
+    const de = M.distEscola, ex = M.exemplo;
+    const lousa = (t, corpo) => `<div class="lousa"><h4>${t}</h4>${corpo}</div>`;
+    return `<p class="ed-p">Cada quadradinho mede <b>10 m × 10 m</b>. Toda conta usa os números desta maquete e muda quando ela muda. ✏️</p>
+      ${lousa('📏 Área do terreno', `<p class="f">A = n × (10 m)²</p><p class="f">A = ${fmt(M.n)} × 100 = <b>${fmt(M.area)} m²</b></p><small>= ${fmt(M.hectares, 2)} hectares = ${fmt(M.km2, 3)} km²</small>`)}
+      ${lousa('🔲 Perímetro', `<p class="f">P = bordas × 10 m</p><p class="f">P = ${fmt(M.bordas)} × 10 = <b>${fmt(M.perimetro)} m</b></p><small>O retângulo que cobre o terreno mede ${fmt(M.largura)} m × ${fmt(M.altura)} m = ${fmt(M.retangulo)} m². O terreno ocupa ${fmt(M.ocupacao * 100)}% dele.</small>`)}
+      ${lousa('🥧 Uso do solo (frações)', `<div class="pizza" style="background:conic-gradient(${pizza})"></div><ul class="uso">${g.map((x) => `<li><i style="background:${x.cor}"></i>${x.emoji} ${x.nome}<b>${M.uso[x.id]}/${M.n} ${fracao(M.uso[x.id] / M.n).startsWith('m') || fracao(M.uso[x.id] / M.n).startsWith('q') ? '→' : '≈'} ${fracao(M.uso[x.id] / M.n)} · ${fmt(M.uso[x.id] / M.n * 100)}%</b></li>`).join('')}</ul>`)}
+      ${M.moradores ? lousa('👨‍👩‍👧 Densidade demográfica', `<p class="f">d = moradores ÷ área</p><p class="f">d = ${fmt(M.moradores)} ÷ ${fmt(M.km2, 3)} km²</p><p class="f">d ≈ <b>${fmt(M.densidade)} hab/km²</b></p>`) : ''}
+      ${M.moradores ? lousa('🌳 Verde por morador', `<p class="f">V = área verde ÷ moradores</p><p class="f">V = ${fmt(M.verdeM2)} ÷ ${fmt(M.moradores)} ≈ <b>${fmt(M.verdePorHab, 1)} m²</b></p><small>${M.verdePorHab >= 12 ? '✓' : '✗'} Uma referência muito usada é ter pelo menos 12 m² de verde por habitante.${M.arvorePorMorador ? ` Há 1 árvore para cada ${fmt(M.arvorePorMorador, 1)} moradores.` : ''}</small>`) : ''}
+      ${de ? lousa('🏫 Distância até a escola', `<p class="f">média = soma ÷ ${de.n} casas ≈ <b>${fmt(de.media)} m</b></p><p class="f">mediana ≈ ${fmt(de.mediana)} m · maior = ${fmt(de.maior)} m</p>
+          <small>Pitágoras na casa mais longe: Δx = ${fmt(Math.abs(ex.e[0] - ex.c[0]), 1)}, Δy = ${fmt(Math.abs(ex.e[1] - ex.c[1]), 1)} → d = √(${fmt((ex.e[0] - ex.c[0]) ** 2, 2)} + ${fmt((ex.e[1] - ex.c[1]) ** 2, 2)}) × 10 ≈ ${fmt(ex.d * LADO)} m</small>`) : ''}
+      ${M.notas.length && analise.nota != null ? lousa('🧮 A nota é uma média', `<p class="f">nota = (${M.notas.join(' + ')}) ÷ ${M.notas.length} ÷ 10</p><p class="f">nota = ${fmt(M.somaNotas)} ÷ ${M.notas.length * 10} ≈ <b>${notaTxt(analise.nota)}</b></p>`) : ''}
+      ${M.ruasM ? lousa('🛣️ Ruas', `<p class="f">${fmt(M.ruasM / LADO)} pedaços × 10 m = <b>${fmt(M.ruasM)} m</b> = ${fmt(M.ruasM / 1000, 2)} km</p>`) : ''}
+      ${lousa('📐 Escala', `<p class="f">1 quadradinho = 10 m = 1.000 cm</p><p class="f">Maquete de papel com 1 cm por quadradinho → escala <b>1 : 1.000</b></p><small>A maquete de papel teria ${M.escalaCm[0]} cm × ${M.escalaCm[1]} cm.</small>`)}
+      <div class="caps-b"><button class="bt" data-mat="regua">📏 Medir com a régua</button><button class="bt" data-mat="eixos">📊 Mostrar o plano cartesiano</button></div>`;
   }
   let textoTimer; function mudouTexto() { clearTimeout(textoTimer); textoTimer = setTimeout(() => { pendente = true; selo.textContent = '✏️ Editando…'; clearTimeout(salvarTimer); salvarTimer = setTimeout(gravar, 1200); }, 300); }
 

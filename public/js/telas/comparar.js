@@ -4,6 +4,7 @@ import { listar, abrir } from '../dados.js';
 import { indexar, desenhar, enquadrar } from '../motor.js';
 import { analisar, INDICADORES } from '../termometro.js';
 import { topo, chipTipo, notaTxt, corNota } from './comum.js';
+import { calcular, fmt } from '../matematica.js';
 
 const LINHAS = [['🏠', 'Casas boas', 'casas'], ['🏢', 'Prédios', 'predios'], ['🏚️', 'Barracos', 'barracos', true], ['🌳', 'Árvores', 'arvores'], ['👨‍👩‍👧', 'Moradores (estimativa)', 'moradores', null],
   ['🏫', 'Escolas e creches', 'escolas'], ['➕', 'Postos e hospitais', 'saude'], ['💡', 'Postes de luz', 'postes'], ['🗑️', 'Montes de lixo', 'lixo', true], ['🤢', 'Esgoto a céu aberto', 'esgoto', true], ['🟫', 'Ruas de terra', 'ruasTerra', true], ['🟩', 'Tamanho (quadradinhos)', 'area', null]];
@@ -76,6 +77,10 @@ export async function montar(app, [ida, idb]) {
         <div class="${w === 1 ? 'ganha' : ''}"><em>${a == null ? '–' : a + '%'}</em>${barra(a, '#52b788')}</div><div class="${w === 2 ? 'ganha' : ''}"><em>${b == null ? '–' : b + '%'}</em>${barra(b, '#ff7a59')}</div></div>`; }).join('')}
       <h2 class="secao-t">🔢 O que tem em cada um</h2>
       <div class="cmp-nums">${LINHAS.map(([e, n, k, menos]) => { const a = aA.contagem[k], b = aB.contagem[k], w = menos === null ? 0 : melhor(a, b, menos); return `<div class="cmp-grade"><span>${e} ${n}</span><b class="${w === 1 ? 'ganha' : ''}">${num(a)}</b><b class="${w === 2 ? 'ganha' : ''}">${num(b)}</b></div>`; }).join('')}</div>
+      <h2 class="secao-t">📐 Em números (matemática)</h2>
+      <div class="cmp-nums">${(() => { const MA = calcular(A, aA), MB = calcular(B, aB); return [['📏', 'Área', (M) => fmt(M.area) + ' m²'], ['🔲', 'Perímetro', (M) => fmt(M.perimetro) + ' m'], ['👨‍👩‍👧', 'Densidade', (M) => M.moradores ? fmt(M.densidade) + ' hab/km²' : '–'],
+        ['🌳', 'Verde por morador', (M) => M.verdePorHab == null ? '–' : fmt(M.verdePorHab, 1) + ' m²', (M) => M.verdePorHab ?? -1], ['🏫', 'Distância média até a escola', (M) => M.distEscola ? fmt(M.distEscola.media) + ' m' : 'sem escola', (M) => (M.distEscola ? -M.distEscola.media : -1e9)],
+        ['🛣️', 'Ruas', (M) => fmt(M.ruasM) + ' m']].map(([e, n, f, val]) => { const w = val ? (val(MA) === val(MB) ? 0 : val(MA) > val(MB) ? 1 : 2) : 0; return `<div class="cmp-grade"><span>${e} ${n}</span><b class="${w === 1 ? 'ganha' : ''}">${f(MA)}</b><b class="${w === 2 ? 'ganha' : ''}">${f(MB)}</b></div>`; }).join(''); })()}</div>
       <div class="cmp-probs"><div><h3>⚠️ Problemas em ${esc(A.nome)}</h3>${aA.problemas.length ? `<ul class="probs">${aA.problemas.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : '<p class="ed-p">Nenhum problema encontrado 🎉</p>'}</div>
       <div><h3>⚠️ Problemas em ${esc(B.nome)}</h3>${aB.problemas.length ? `<ul class="probs">${aB.problemas.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : '<p class="ed-p">Nenhum problema encontrado 🎉</p>'}</div></div>`;
   }

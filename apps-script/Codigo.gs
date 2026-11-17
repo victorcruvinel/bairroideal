@@ -25,7 +25,7 @@ var TAM_PARTE = 45000;                              // uma célula aceita até 5
 var ABAS = {
   Usuarios: ['email', 'nome', 'papel', 'criado', 'ultimoAcesso', 'convidadoPor'],
   Sessoes: ['token', 'email', 'expira'],
-  Maquetes: ['id', 'nome', 'tipo', 'cidade', 'dono', 'donoNome', 'criado', 'atualizado', 'nota', 'pecas', 'area', 'thumb', 'partes'],
+  Maquetes: ['id', 'nome', 'tipo', 'cidade', 'dono', 'donoNome', 'criado', 'atualizado', 'nota', 'pecas', 'area', 'thumb', 'partes', 'publica'],
   Dados: ['id', 'partes', 'dados (em pedaços nas colunas seguintes)'],
   Registro: ['quando', 'para', 'assunto', 'enviado'],
 };
@@ -65,6 +65,9 @@ function rotear_(d) {
   if (acao === 'auth.inicio') return authInicio_(d);
   if (acao === 'auth.codigo') return comTrava_(function () { return authCodigo_(d); });
   if (acao === 'auth.confirmar') return comTrava_(function () { return authConfirmar_(d); });
+  // modo visitante: só ler as maquetes que estão na exposição (sem login)
+  if (acao === 'publico.listar') return { ok: true, maquetes: listarMaquetes_().filter(function (m) { return m.publica; }) };
+  if (acao === 'publico.abrir') { var rp = acharMaquete_(d.id); if (!rp || String(rp.publica) === 'nao') return { ok: false, erro: 'nao_achou' }; return abrirMaquete_(d.id); }
   var u = usuarioDaSessao_(d.sessao);
   if (!u) return { ok: false, erro: 'sessao' };
   switch (acao) {
@@ -105,7 +108,7 @@ function txt_(v, max) { return String(v == null ? '' : v).replace(/^[=+\-@]/, "'
 // ------------------------------------------------------------------ maquetes
 function metaDe_(r) {
   return { id: String(r.id), nome: String(r.nome), tipo: String(r.tipo || 'livre'), cidade: String(r.cidade || ''), dono: String(r.dono), donoNome: String(r.donoNome || ''),
-    criado: iso_(r.criado), atualizado: iso_(r.atualizado), nota: r.nota === '' || r.nota == null ? null : Number(r.nota), pecas: Number(r.pecas || 0), area: Number(r.area || 0), thumb: String(r.thumb || '') };
+    criado: iso_(r.criado), atualizado: iso_(r.atualizado), nota: r.nota === '' || r.nota == null ? null : Number(r.nota), pecas: Number(r.pecas || 0), area: Number(r.area || 0), thumb: String(r.thumb || ''), publica: String(r.publica) !== 'nao' };
 }
 function listarMaquetes_() { return linhas_('Maquetes').map(metaDe_); }
 function acharMaquete_(id) { id = String(id || ''); return linhas_('Maquetes').filter(function (r) { return String(r.id) === id; })[0] || null; }
@@ -154,7 +157,7 @@ function salvarMaquete_(d, u) {
   var o = {
     id: id, nome: txt_(m.nome || 'Sem nome', 80), tipo: ['ideal', 'carente', 'livre'].indexOf(m.tipo) >= 0 ? m.tipo : 'livre', cidade: txt_(m.cidade, 80),
     dono: r ? r.dono : u.email, donoNome: r ? r.donoNome : u.nome, criado: r ? iso_(r.criado) : (m.criado || agora), atualizado: String(m.atualizado || agora),
-    nota: m.nota == null ? '' : Number(m.nota), pecas: Number(m.pecas || 0), area: Number(m.area || 0), thumb: thumb, partes: partes,
+    nota: m.nota == null ? '' : Number(m.nota), pecas: Number(m.pecas || 0), area: Number(m.area || 0), thumb: thumb, partes: partes, publica: m.publica === false ? 'nao' : 'sim',
   };
   if (r) gravarLinha_('Maquetes', r._linha, o); else aba_('Maquetes').appendRow(paraLinha_('Maquetes', o));
   return { ok: true, atualizado: o.atualizado };

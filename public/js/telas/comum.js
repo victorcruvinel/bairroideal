@@ -1,6 +1,6 @@
 // Bairro Ideal · pedaços usados em várias telas (topo, foto da maquete, nova maquete)
 import { el, esc, janela, aviso } from '../ui.js';
-import { estado, sair, salvar } from '../dados.js';
+import { estado, sair, salvar, sairVisitante } from '../dados.js';
 import { indexar, desenhar, enquadrar } from '../motor.js';
 import { analisar } from '../termometro.js';
 import { MODELOS } from '../modelos.js';
@@ -16,15 +16,21 @@ export function topo({ voltar = false, titulo = '' } = {}) {
     ${voltar ? '<a class="redondo" href="#/" aria-label="Voltar">‹</a>' : ''}
     <a class="logo" href="#/"><img src="/img/icone.svg" alt="">${titulo ? esc(titulo) : 'Bairro Ideal'}</a>
     <div class="topo-dir">
+      ${estado.visitante ? `<span class="chip chip-visita">👀 Visitante</span><button class="bt bt--verde" data-t="entrar">🔑 Entrar</button><button class="bt bt--leve" data-t="porta" title="Voltar para a porta de entrada">🚪</button>` : `
       <span class="nuvem-st ${estado.nuvem && estado.sessao ? '' : 'off'}"><i></i>${estado.nuvem && estado.sessao ? 'Salvando na nuvem' : 'Salvo neste aparelho'}</span>
-      ${u ? `<button class="avatar" title="${esc(u.nome)}">${esc((u.nome || u.email).split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</button>` : ''}
+      ${u ? `<button class="avatar" title="${esc(u.nome)}">${esc((u.nome || u.email).split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</button>` : '<button class="bt bt--leve" data-t="porta" title="Voltar para a porta de entrada">🚪 Sair</button>'}`}
     </div></header>`);
+  t.addEventListener('click', async (e) => {
+    const a = e.target.closest('[data-t]')?.dataset.t; if (!a) return;
+    if (a === 'entrar') { sairVisitante(); location.hash = estado.nuvem ? '#/entrar' : '#/porta'; }
+    if (a === 'porta') { sairVisitante(); if (!estado.nuvem) await sair(); location.hash = '#/porta'; }
+  });
   const av = t.querySelector('.avatar');
   if (av) av.onclick = async () => {
     const r = await janela({ titulo: esc(u.nome), corpo: `<p>${esc(u.email)}<br>${u.papel === 'admin' ? '⭐ Administrador(a): pode convidar pessoas.' : 'Conta convidada.'}</p>`, botoes: [
       ...(u.papel === 'admin' ? [{ texto: '👥 Pessoas', valor: 'pessoas' }] : []), { texto: '🔒 Privacidade', valor: 'priv' }, { texto: 'Sair da conta', classe: 'bt--perigo', valor: 'sair' }] });
     if (r === 'pessoas') location.hash = '#/pessoas'; if (r === 'priv') location.hash = '#/privacidade';
-    if (r === 'sair') { await sair(); aviso('Até logo! 👋'); location.hash = '#/entrar'; }
+    if (r === 'sair') { await sair(); aviso('Até logo! 👋'); location.hash = '#/porta'; }
   };
   return t;
 }

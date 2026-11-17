@@ -5,6 +5,7 @@ import { MODELOS } from '../modelos.js';
 import { topo, chipTipo, corNota, notaTxt, novaMaquete, prepararParaSalvar } from './comum.js';
 
 export async function montar(app) {
+  if (estado.visitante) return exposicao(app);
   app.append(topo());
   const tela = el(`<div class="tela"><div class="larg">
     <div class="ola"><div><h1>Olá${estado.usuario ? ', ' + esc(estado.usuario.nome.split(' ')[0]) : ''}! 👋</h1><p>Monte bairros, compare e conte a história de cada um.</p></div>
@@ -79,4 +80,37 @@ export async function montar(app) {
       }
     };
   }
+}
+
+// ------------------------------------------------ visitante: exposição de maquetes (só olhar)
+async function exposicao(app) {
+  app.append(topo());
+  const tela = el(`<div class="tela"><div class="larg">
+    <div class="ola"><div><h1>🏛️ Exposição de maquetes</h1><p>Toque num bairro para ver em 3D, na planta, passear por dentro e conhecer a história.</p></div>
+      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap"><button class="bt bt--sol bt--gde" id="tour">▶ Apresentar todos</button><a class="bt bt--gde" href="#/comparar">⚖️ Comparar</a></div></div>
+    <div class="grade-m" id="expo"><div class="vazio-lista" style="grid-column:1/-1">Carregando a exposição…</div></div>
+    <div class="dica-cx" style="margin-top:22px">👀 Você está no <b>modo visitante</b>: dá para ver tudo, mas não dá para mudar nada. Quem tem conta pode tocar em <b>🔑 Entrar</b> para editar.</div>
+    <div class="rodape">Bairro Ideal · projeto acadêmico de Victor Soares Cruvinel · <a href="#/privacidade">Privacidade e cookies</a></div>
+  </div></div>`);
+  app.append(tela);
+  // sem planilha, na 1ª vez: já deixa os dois bairros de exemplo na exposição
+  let primeira = false; try { primeira = !localStorage.getItem('bi:exemplos'); } catch { /* */ }
+  if (!estado.nuvem && primeira) {
+    try { localStorage.setItem('bi:exemplos', '1'); } catch { /* */ }
+    estado.visitante = false; for (const id of ['carente', 'ideal']) await salvar(prepararParaSalvar(MODELOS.find((x) => x.id === id).criar())); estado.visitante = true;
+  }
+  const { equipe } = await listar(); const g = tela.querySelector('#expo');
+  g.innerHTML = equipe.length ? equipe.map((m) => `<div class="cartao-m cartao-expo" role="button" tabindex="0" data-id="${m.id}">
+      <div class="th">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<span class="vazio">🗺️</span>'}</div>
+      <div class="info"><b>${esc(m.nome)}</b><small>${m.cidade ? '📍 ' + esc(m.cidade) + ' · ' : ''}${num(m.pecas)} peças${m.donoNome ? ' · por ' + esc(m.donoNome.split(' ')[0]) : ''}</small>
+      <div class="linha">${chipTipo(m.tipo)}<span class="nota" style="color:${corNota(m.nota)}">${notaTxt(m.nota)}</span></div>
+      <div class="expo-b"><button class="bt" data-v="ver">🧊 Ver</button><button class="bt" data-v="historia">📖 História</button><button class="bt" data-v="passeio">🚶 Passear</button></div></div></div>`).join('')
+    : `<div class="vazio-lista" style="grid-column:1/-1">Ainda não há maquetes na exposição${navigator.onLine ? '' : ' (e o aparelho está sem internet)'}.</div>`;
+  tela.querySelector('#tour').disabled = !equipe.length;
+  tela.querySelector('#tour').onclick = () => { try { sessionStorage.setItem('bi:tour', JSON.stringify(equipe.map((m) => m.id))); } catch { /* */ } location.hash = '#/m/' + equipe[0].id + '/historia'; };
+  g.addEventListener('click', (e) => {
+    const c = e.target.closest('[data-id]'); if (!c) return; const v = e.target.closest('[data-v]')?.dataset.v || 'ver';
+    try { sessionStorage.removeItem('bi:tour'); } catch { /* */ }
+    location.hash = '#/m/' + c.dataset.id + (v === 'ver' ? '' : '/' + v);
+  });
 }

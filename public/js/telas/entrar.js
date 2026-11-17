@@ -1,6 +1,6 @@
 // Bairro Ideal · entrar só com código no e-mail (sem senha). Primeiro acesso pede nome e sobrenome.
 import { el, esc, aviso } from '../ui.js';
-import { api, estado, guardarUsuario } from '../dados.js';
+import { api, estado, guardarUsuario, editarLocal } from '../dados.js';
 import { indexar, desenhar, enquadrar } from '../motor.js';
 import { bairroIdeal } from '../modelos.js';
 
@@ -30,7 +30,7 @@ export function montar(app) {
   let email = '', estadoConta = 'codigo', nomeSugerido = '';
 
   if (!estado.nuvem) {
-    cx.innerHTML = `<img src="/img/icone.svg" alt="" width="64" height="64"><h1>Modo local</h1><p>A planilha ainda não está ligada, então não precisa entrar: tudo fica salvo neste aparelho.</p><a class="bt bt--sol bt--gde" href="#/">Começar</a>`;
+    cx.innerHTML = `<img src="/img/icone.svg" alt="" width="64" height="64"><h1>Modo local</h1><p>A planilha ainda não está ligada, então não precisa entrar: tudo fica salvo neste aparelho.</p><button class="bt bt--sol bt--gde" data-ok>Começar</button>`; cx.querySelector('[data-ok]').onclick = () => { editarLocal(); location.hash = '#/'; };
     return { sair: () => removeEventListener('resize', pintar) };
   }
   passoEmail();
@@ -40,7 +40,8 @@ export function montar(app) {
       <p>Digite seu e-mail. Vamos mandar um código de 6 números, sem senha.</p>
       <form class="entrar-f" style="display:grid;gap:14px" novalidate><label class="campo">E-mail<input type="email" name="email" autocomplete="email" inputmode="email" required value="${esc(email)}" placeholder="voce@email.com"></label>
       <div class="erro-msg">${msg}</div><button class="bt bt--sol bt--gde">Receber código ✉️</button></form>
-      <p style="font-size:13px">Ao entrar você concorda com a <a href="#/privacidade">política de privacidade</a>.</p>`;
+      <p style="font-size:13px">Ao entrar você concorda com a <a href="#/privacidade">política de privacidade</a>.</p>
+      <a class="bt bt--leve" href="#/porta">‹ Voltar (ou visitar sem conta)</a>`;
     const f = cx.querySelector('form'), inp = f.email; setTimeout(() => inp.focus(), 50);
     f.onsubmit = async (e) => {
       e.preventDefault(); email = inp.value.trim().toLowerCase(); const b = f.querySelector('button'); b.disabled = true; b.textContent = 'Enviando…';

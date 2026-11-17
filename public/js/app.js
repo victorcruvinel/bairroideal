@@ -1,6 +1,6 @@
 // Bairro Ideal · começo de tudo: abertura, dados, rotas (#/...) e atualização do app.
 import { abertura } from './abertura.js';
-import { iniciar, precisaEntrar, estado, aoMudar } from './dados.js';
+import { iniciar, precisaPorta, estado, aoMudar } from './dados.js';
 import { cookies } from './telas/privacidade.js';
 import { aviso } from './ui.js';
 
@@ -16,13 +16,17 @@ const ROTAS = [
   [/^#\/pessoas$/, () => import('./telas/pessoas.js')],
   [/^#\/privacidade$/, () => import('./telas/privacidade.js')],
   [/^#\/entrar$/, () => import('./telas/entrar.js')],
+  [/^#\/porta$/, () => import('./telas/porta.js')],
 ];
 
 let ultimoHash = location.hash, voltando = false;
 async function rotear() {
   if (voltando) { voltando = false; return; }
   const hash = location.hash || '#/';
-  if (precisaEntrar() && hash !== '#/entrar' && hash !== '#/privacidade') { location.replace('#/entrar'); return; }
+  const livres = ['#/entrar', '#/privacidade', '#/porta'];
+  if (precisaPorta() && !livres.includes(hash)) { location.replace('#/porta'); return; }
+  // visitante não entra em telas de conta
+  if (estado.visitante && hash === '#/pessoas') { location.replace('#/'); return; }
   if (atual && atual.temMudancas && atual.temMudancas()) {
     const ok = await atual.perguntarSaida(); if (!ok) { voltando = true; location.hash = ultimoHash; return; }
   }

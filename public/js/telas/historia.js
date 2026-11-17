@@ -6,6 +6,7 @@ import { indexar, desenhar, enquadrar, tamanho, deltaMundo } from '../motor.js';
 import { OBJETOS } from '../pecas.js';
 import { analisar, dicas } from '../termometro.js';
 import { notaTxt, corNota, TIPOS } from './comum.js';
+import { calcular, fmt, fracao } from '../matematica.js';
 
 export const CORUJA = `<svg viewBox="0 0 80 80" aria-hidden="true"><ellipse cx="40" cy="48" rx="26" ry="28" fill="#8a6a4a"/><ellipse cx="40" cy="56" rx="17" ry="19" fill="#f3dfc1"/>
 <path d="M16 26 24 12 30 26zM64 26 56 12 50 26z" fill="#8a6a4a"/><circle cx="29" cy="36" r="11" fill="#fff"/><circle cx="51" cy="36" r="11" fill="#fff"/>
@@ -35,6 +36,8 @@ export function historiaAutomatica(m, a = analisar(m)) {
     caps.push({ titulo: ideal ? 'O que ainda falta' : 'Os problemas do bairro', texto: 'Encontramos: ' + a.problemas.slice(0, 5).map((p) => p.replace(/^\S+\s/, '')).join(', ') + '.', cam: alvo ? focoEm(alvo, 1.5) : null });
   }
   if (c.ruas + c.ruasTerra) caps.push({ titulo: 'À noite', texto: a.v.iluminacao >= 80 ? 'Os postes iluminam as ruas e as pessoas andam com mais segurança.' : `Só ${a.v.iluminacao ?? 0}% das ruas têm luz. À noite fica escuro e perigoso andar na rua.`, cam: { ...(casas.length ? focoEm(meio(casas), 1.1) : { x: 0, y: 0, z: 1 }), noite: true } });
+  const M = calcular(m, a);
+  if (M.n) caps.push({ titulo: 'O bairro em números 🔢', texto: `Área: ${fmt(M.n)} quadradinhos × 100 m² = ${fmt(M.area)} m². Perímetro: ${fmt(M.perimetro)} m. ${M.moradores ? `Densidade: ${fmt(M.moradores)} moradores ÷ ${fmt(M.km2, 3)} km² ≈ ${fmt(M.densidade)} habitantes por km². ` : ''}Cerca de ${fracao((M.uso.verde + M.uso.lazer) / M.n)} do terreno é verde ou praça${M.verdePorHab != null ? ` (${fmt(M.verdePorHab, 1)} m² por morador)` : ''}.`, cam: null });
   const ds = dicas(a);
   caps.push({ titulo: `Nota do bairro: ${notaTxt(a.nota)}`, texto: (ideal ? 'Este bairro cuida bem de quem mora nele.' : 'Este bairro precisa de muita ajuda.') + (ds.length ? ' Para melhorar: ' + ds.slice(0, 3).join(' ') : ' Todas as metas foram cumpridas! 🏆'), cam: null, final: true });
   return caps;
@@ -44,11 +47,15 @@ export async function montar(app, [id]) {
   const m = await abrir(id); if (!m) { location.hash = '#/'; return; }
   const a = analisar(m); const caps = (m.capitulos && m.capitulos.length ? m.capitulos : historiaAutomatica(m, a));
   app.classList.add('app--cheio');
+  // "Apresentar todos": uma lista de bairros que passam um depois do outro
+  let tour = null; try { tour = JSON.parse(sessionStorage.getItem('bi:tour') || 'null'); } catch { /* */ }
+  const pos = tour ? tour.indexOf(m.id) : -1; const proxId = pos >= 0 && pos < tour.length - 1 ? tour[pos + 1] : null;
+  const irProximo = () => { try { sessionStorage.setItem('bi:tour-auto', auto ? '1' : ''); } catch { /* */ } location.hash = '#/m/' + proxId + '/historia'; };
   const t = el(`<div class="hist">
     <canvas></canvas>
     <div class="hist-topo"><div class="hist-prog">${caps.map((_, i) => `<i data-i="${i}"></i>`).join('')}</div>
       <div class="hist-acoes"><button class="redondo" data-h="voz" title="Ler em voz alta">🔇</button><button class="redondo" data-h="play" title="Passar sozinho">▶</button><button class="redondo" data-h="sair" title="Sair (Esc)">✕</button></div></div>
-    <div class="hist-nome"><b>${esc(m.nome)}</b> ${TIPOS[m.tipo] ? `<span>${TIPOS[m.tipo][0]} ${TIPOS[m.tipo][1]}</span>` : ''}</div>
+    <div class="hist-nome"><b>${esc(m.nome)}</b> ${TIPOS[m.tipo] ? `<span>${TIPOS[m.tipo][0]} ${TIPOS[m.tipo][1]}</span>` : ''}${pos >= 0 ? `<span>🏛️ Bairro ${pos + 1} de ${tour.length}</span>` : ''}</div>
     <button class="hist-seta esq" data-h="ant" aria-label="Anterior">‹</button><button class="hist-seta dir" data-h="prox" aria-label="Próximo">›</button>
     <div class="hist-leg"><div class="hist-coruja">${CORUJA}</div><div class="hist-txt"><small></small><h2></h2><p></p></div></div>
   </div>`);
@@ -69,7 +76,8 @@ export async function montar(app, [id]) {
     t.querySelector('.hist-txt small').textContent = `Capítulo ${i + 1} de ${caps.length}`;
     t.querySelector('.hist-txt h2').textContent = cp.titulo || ''; t.querySelector('.hist-txt p').textContent = cp.texto || '';
     t.querySelectorAll('.hist-prog i').forEach((x, k) => { x.classList.toggle('on', k === i); x.classList.toggle('feito', k < i); });
-    t.querySelector('.esq').disabled = i === 0; t.querySelector('.dir').disabled = i === caps.length - 1;
+    t.querySelector('.esq').disabled = i === 0; t.querySelector('.dir').disabled = i === caps.length - 1 && !proxId;
+    t.querySelector('.dir').title = i === caps.length - 1 && proxId ? 'Próximo bairro' : 'Próximo';
     t.classList.toggle('noite', noite);
     falar(); programar();
   }
@@ -77,10 +85,10 @@ export async function montar(app, [id]) {
     if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); if (!voz) return;
     const u = new SpeechSynthesisUtterance(`${caps[i].titulo}. ${caps[i].texto}`); u.lang = 'pt-BR'; u.rate = 1;
     const v = speechSynthesis.getVoices().find((x) => x.lang && x.lang.toLowerCase().startsWith('pt')); if (v) u.voice = v;
-    u.onend = () => { if (auto && vivo) timer = setTimeout(() => (i < caps.length - 1 ? ir(i + 1) : alternarAuto(false)), 1200); };
+    u.onend = () => { if (auto && vivo) timer = setTimeout(() => (i < caps.length - 1 ? ir(i + 1) : proxId ? irProximo() : alternarAuto(false)), 1200); };
     speechSynthesis.speak(u);
   }
-  function programar() { clearTimeout(timer); if (!auto || voz) return; const ms = 3500 + (caps[i].texto || '').length * 45; timer = setTimeout(() => (i < caps.length - 1 ? ir(i + 1) : alternarAuto(false)), ms); }
+  function programar() { clearTimeout(timer); if (!auto || voz) return; const ms = 3500 + (caps[i].texto || '').length * 45; timer = setTimeout(() => (i < caps.length - 1 ? ir(i + 1) : proxId ? irProximo() : alternarAuto(false)), ms); }
   function alternarAuto(v = !auto) { auto = v; t.querySelector('[data-h=play]').textContent = auto ? '⏸' : '▶'; t.querySelector('[data-h=play]').classList.toggle('on', auto); if (auto && !voz) programar(); else if (!auto) clearTimeout(timer); if (auto && voz) falar(); }
 
   function quadro(agora) {
@@ -96,15 +104,17 @@ export async function montar(app, [id]) {
   t.addEventListener('click', (e) => {
     const h = e.target.closest('[data-h]')?.dataset.h; const pi = e.target.closest('.hist-prog i');
     if (pi) return ir(+pi.dataset.i);
-    if (h === 'ant') ir(i - 1); if (h === 'prox') ir(i + 1); if (h === 'play') alternarAuto();
+    if (h === 'ant') ir(i - 1); if (h === 'prox') { if (i === caps.length - 1 && proxId) return irProximo(); ir(i + 1); } if (h === 'play') alternarAuto();
     if (h === 'voz') { voz = !voz; e.target.closest('button').textContent = voz ? '🔊' : '🔇'; e.target.closest('button').classList.toggle('on', voz); falar(); if (!voz) programar(); }
-    if (h === 'sair') history.length > 1 ? history.back() : (location.hash = '#/m/' + m.id);
+    if (h === 'sair') { try { sessionStorage.removeItem('bi:tour'); } catch { /* */ } location.hash = pos >= 0 ? '#/' : '#/m/' + m.id; return; }
+    if (h === 'sairVelho') history.length > 1 ? history.back() : (location.hash = '#/m/' + m.id);
   });
-  const tecla = (e) => { if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); ir(i + 1); } if (e.key === 'ArrowLeft' || e.key === 'PageUp') ir(i - 1); if (e.key === 'Escape') location.hash = '#/m/' + m.id; };
+  const tecla = (e) => { if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); if (i === caps.length - 1 && proxId) irProximo(); else ir(i + 1); } if (e.key === 'ArrowLeft' || e.key === 'PageUp') ir(i - 1); if (e.key === 'Escape') location.hash = '#/m/' + m.id; };
   document.addEventListener('keydown', tecla);
   // deslizar o dedo para os lados troca de capítulo
   let x0 = null; t.addEventListener('pointerdown', (e) => { x0 = e.clientX; }); t.addEventListener('pointerup', (e) => { if (x0 != null && Math.abs(e.clientX - x0) > 60) ir(i + (e.clientX < x0 ? 1 : -1)); x0 = null; });
   ir(0); requestAnimationFrame(quadro);
+  try { if (pos > 0 && sessionStorage.getItem('bi:tour-auto') === '1') alternarAuto(true); } catch { /* */ }
   void corNota;
   return { sair: () => { vivo = false; clearTimeout(timer); if ('speechSynthesis' in window) speechSynthesis.cancel(); document.removeEventListener('keydown', tecla); removeEventListener('resize', medir); } };
 }

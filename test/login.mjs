@@ -8,7 +8,8 @@ const erros = []; p.on('pageerror', (e) => erros.push(e.message));
 try {
   await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); });
   await p.goto(URL0 + '/'); await p.waitForTimeout(4500);
-  assert.equal(await p.evaluate(() => location.hash), '#/entrar', 'sem login vai para entrar');
+  assert.equal(await p.evaluate(() => location.hash), '#/porta', 'sem login aparece a porta de entrada');
+  await p.click('[data-p=entrar]'); await p.waitForSelector('[name=email]');
   if (FOTOS) await p.screenshot({ path: FOTOS + '/15-entrar.png' });
   await p.fill('[name=email]', 'naoconvidado@x.com'); await p.click('.entrar-cx .bt--sol'); await p.waitForTimeout(400);
   assert.match(await p.textContent('.erro-msg'), /ainda não foi convidado/);
@@ -33,7 +34,14 @@ try {
   assert.match(await p.textContent('.ed-salvo'), /nuvem/);
   // sair
   await p.evaluate(() => { location.hash = '#/'; }); await p.waitForSelector('.avatar'); await p.click('.avatar'); await p.click('.janela .bt--perigo'); await p.waitForTimeout(800);
-  assert.equal(await p.evaluate(() => location.hash), '#/entrar');
+  assert.equal(await p.evaluate(() => location.hash), '#/porta');
+  // visitante: vê a exposição sem login, abre a maquete e não consegue editar
+  await p.click('[data-p=visitar]'); await p.waitForSelector('.cartao-expo');
+  assert.equal(await p.locator('.cartao-expo').count(), 2);
+  if (FOTOS) await p.screenshot({ path: FOTOS + '/23-visitante-nuvem.png' });
+  await p.locator('.cartao-expo').first().click(); await p.waitForSelector('.ed-mapa');
+  assert.equal(await p.locator('.ed.so-ver').count(), 1, 'sem ferramentas de edição');
+  assert.equal(await p.locator('.ed-doca:visible').count(), 0);
   assert.deepEqual(erros, []);
   console.log('✔ login, nuvem e convites ok');
 } finally { await b.close(); srv.kill(); }

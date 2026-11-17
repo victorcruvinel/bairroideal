@@ -16,6 +16,12 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Privacidade e cookies: `#/privacidade` + aviso na 1ª visita.
 - Abertura animada sempre que o app abre (`abertura.js`), dá para pular.
 
+## Rodada 2 (17/11 à noite)
+- **Porta de entrada** (`telas/porta.js`, rota `#/porta`) depois da abertura: Visitar × Entrar. Contas só o Victor/admin cria; a professora só entra.
+- **Visitante** (`estado.visitante`, sessionStorage `bi:visitante`): Apps Script `publico.listar` / `publico.abrir` sem login, só maquetes com `publica` ≠ 'nao' (checkbox "Mostrar na exposição" na aba Sobre). Editor abre em modo só ver (`.so-ver`). Cache no IndexedDB com `conta: 'visitante'` para apresentar offline. "Apresentar todos" = sessionStorage `bi:tour` no modo história.
+- Sem planilha (modo local): "Entrar" = `editarLocal()` (sessionStorage `bi:editor-local`).
+- **Matemática** (`matematica.js`): aba 📐 em estilo lousa (fonte Caveat), régua (tecla M), plano cartesiano (y cresce para cima: y = −linha), linha "Em números" no Comparar e capítulo "O bairro em números" na história automática.
+
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).
 - Branch de trabalho: `claude/bairro-ideal-mockup-app-6j87sk`.

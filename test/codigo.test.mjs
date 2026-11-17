@@ -86,3 +86,15 @@ test('sem o alias, o e-mail sai da conta do dono; e-mails sem emoji de 4 bytes',
   assert.equal(g.emails.at(-1).de, 'dono@gmail.com');
   assert.equal(g.ctx.configurar().includes('não foi encontrado'), true);
 });
+
+test('modo visitante: lista e abre só as maquetes da exposição, sem login', async () => {
+  const g = criarGas(); const adm = await entrar(g, ADMIN, 'Victor Cruvinel');
+  g.chamar({ acao: 'salvar', sessao: adm, meta: { id: 'mpub01', nome: 'Na exposição', publica: true }, dados: 'g:um' });
+  g.chamar({ acao: 'salvar', sessao: adm, meta: { id: 'mpriv01', nome: 'Rascunho', publica: false }, dados: 'g:dois' });
+  const l = g.chamar({ acao: 'publico.listar' }); assert.equal(l.ok, true); assert.deepEqual(l.maquetes.map((m) => m.id), ['mpub01']);
+  assert.equal(g.chamar({ acao: 'publico.abrir', id: 'mpub01' }).maquete.dados, 'g:um');
+  assert.equal(g.chamar({ acao: 'publico.abrir', id: 'mpriv01' }).erro, 'nao_achou');
+  assert.equal(g.chamar({ acao: 'salvar', meta: { id: 'mpub01' }, dados: 'g:x' }).erro, 'sessao', 'visitante não salva');
+  assert.equal(g.chamar({ acao: 'excluir', id: 'mpub01' }).erro, 'sessao');
+  assert.equal(g.chamar({ acao: 'listar', sessao: adm }).maquetes.length, 2, 'dono vê as duas');
+});

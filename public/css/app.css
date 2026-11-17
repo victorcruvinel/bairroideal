@@ -407,3 +407,52 @@ img { -webkit-user-drag: none; }
 .pessoa-b { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; } .pessoa-b .bt { padding: 7px 11px; font-size: 13.5px; }
 @media (max-width: 760px) { .convite-l { grid-template-columns: 1fr; } .pessoa { flex-wrap: wrap; } .pessoa-b { width: 100%; justify-content: flex-start; } }
 body.no-editor .avisos { bottom: calc(var(--doca-g, 230px) + var(--seguro-b)); }
+
+/* =================================================================== PORTA DE ENTRADA */
+.porta { position: relative; flex: 1; overflow: hidden; background: linear-gradient(180deg, var(--ceu1) 0%, #a6e3ff 50%, var(--ceu2) 100%); }
+.porta canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.porta-cx { position: relative; z-index: 1; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: calc(30px + var(--seguro-t)) 18px calc(18px + var(--seguro-b)); gap: 22px; }
+.porta-logo { display: flex; align-items: center; gap: 14px; animation: sobe .6s; }
+.porta-logo img { border-radius: 22px; box-shadow: 0 6px 0 var(--verde2); }
+.porta-logo h1 { font-size: clamp(36px, 5vw, 58px); color: #fff; text-shadow: 0 4px 0 var(--verde); line-height: 1; font-weight: 700; }
+.porta-logo p { font-family: var(--titulo); font-weight: 600; color: var(--verde2); font-size: 18px; margin-top: 4px; }
+.porta-op { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; width: min(820px, 100%); }
+.porta-bt { background: #fff; border-radius: 28px; padding: 22px 22px 18px; text-align: left; display: grid; gap: 6px; box-shadow: 0 8px 0 rgba(20, 81, 58, .18), 0 24px 40px -20px rgba(0, 0, 0, .35); border: 3px solid transparent; transition: transform .15s, border-color .15s; animation: sobe .6s .1s backwards; }
+.porta-bt:hover { transform: translateY(-4px); } .porta-bt:active { transform: translateY(2px); }
+.porta-bt .em { font-size: 40px; width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; }
+.porta-bt--visita .em { background: #fff3c4; } .porta-bt--conta .em { background: var(--verdeclaro); }
+.porta-bt--visita:hover { border-color: var(--sol); } .porta-bt--conta:hover { border-color: var(--verde); }
+.porta-bt b { font-family: var(--titulo); font-weight: 700; font-size: 24px; }
+.porta-bt small { font-weight: 700; color: var(--tinta2); font-size: 14.5px; line-height: 1.45; }
+.porta-bt i { font-style: normal; font-weight: 900; margin-top: 6px; color: var(--verde); }
+.porta-bt--visita i { color: #b07d00; }
+.porta-rod { margin-top: auto; font-size: 12.5px; font-weight: 700; color: var(--verde2); background: rgba(255, 255, 255, .7); padding: 6px 12px; border-radius: 999px; }
+@media (max-width: 760px) { .porta-op { grid-template-columns: 1fr; } .porta-cx { padding-top: calc(42vh - 60px); } .porta-logo { position: absolute; top: calc(18px + var(--seguro-t)); } .porta-bt { padding: 16px; } .porta-bt b { font-size: 20px; } .porta-bt .em { width: 52px; height: 52px; font-size: 30px; } }
+.chip-visita { background: #fff3c4; color: #8a6200; }
+.expo-b { display: flex; gap: 6px; margin-top: 6px; } .expo-b .bt { flex: 1; padding: 8px 4px; font-size: 13px; }
+.ed-pub { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 2px solid var(--linha); border-radius: 14px; padding: 10px 12px; cursor: pointer; }
+.ed-pub input { width: 22px; height: 22px; accent-color: var(--verde); flex: none; margin-top: 2px; }
+.ed-pub span { display: grid; } .ed-pub small { color: var(--tinta2); font-weight: 700; font-size: 12.5px; }
+
+/* =================================================================== MATEMÁTICA (lousa) */
+.lousa { background: #24533f; background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size: 6px 6px; color: #f1f5e9; border-radius: 16px; padding: 12px 14px; border: 5px solid #a0703f; box-shadow: inset 0 0 20px rgba(0,0,0,.25); display: grid; gap: 4px; }
+.lousa h4 { font-family: 'Caveat', var(--titulo); font-size: 23px; font-weight: 700; color: #fff7c2; line-height: 1.1; }
+.lousa .f { font-family: 'Caveat', var(--fonte); font-size: 20px; line-height: 1.25; font-weight: 600; }
+.lousa .f b { color: #ffd166; font-weight: 700; }
+.lousa small { font-size: 12.5px; font-weight: 700; color: #cfe3d4; line-height: 1.4; }
+.lousa p { font-weight: 700; font-size: 13.5px; }
+.pizza { width: 120px; height: 120px; border-radius: 50%; margin: 6px auto; border: 3px solid #f1f5e9; }
+.uso { list-style: none; padding: 0; display: grid; gap: 4px; font-size: 12.5px; font-weight: 700; }
+.uso li { display: grid; grid-template-columns: 12px 1fr; gap: 0 6px; align-items: center; } .uso li i { width: 12px; height: 12px; border-radius: 3px; } .uso li b { grid-column: 2; color: #ffd166; font-weight: 800; }
+.ed-regua { position: absolute; z-index: 6; left: 92px; bottom: calc(var(--doca, 200px) + 24px + var(--seguro-b)); width: min(370px, calc(100% - 180px)); padding-right: 40px; }
+.com-eixos .ed-dica, .com-regua .ed-dica { display: none; }
+.so-ver .ed-regua { left: 14px; bottom: calc(14px + var(--seguro-b)); }
+.ed-regua button[data-r] { position: absolute; top: 6px; right: 8px; width: 30px; height: 30px; border-radius: 10px; color: #fff; font-weight: 900; } .ed-regua button[data-r]:hover { background: rgba(255,255,255,.12); }
+.ed-xy { font-family: 'Caveat', var(--titulo); font-weight: 700; font-size: 18px; line-height: .9; } .ed-xy i { font-style: italic; } .ed-xy i + i { margin-left: 1px; }
+.ed-abas button { padding: 6px 1px; font-size: 11.5px; }
+@media (max-width: 760px) { .ed-regua { width: calc(100% - 20px); left: 10px; bottom: auto; top: calc(104px + var(--seguro-t)); font-size: 13px; } .ed-regua .f { font-size: 17px; } .ed-vista { gap: 5px; } }
+.so-ver .ed-faixa { left: 14px; transform: none; max-width: calc(100% - 100px); }
+.so-ver.com-painel .ed-faixa { max-width: calc(100% - 440px); }
+.so-ver .ed-salvo { display: none; }
+@media (max-width: 980px) { .so-ver.com-painel .ed-faixa { max-width: calc(100% - 100px); } }
+@media (max-width: 760px) { .so-ver .ed-faixa { left: 10px; right: 60px; max-width: none; } }

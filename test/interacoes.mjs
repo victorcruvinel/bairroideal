@@ -4,7 +4,7 @@ const { chromium } = createRequire(import.meta.url)(process.env.PW || 'playwrigh
 const FOTOS = process.env.FOTOS;
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
 const erros = []; p.on('pageerror', (e) => erros.push(e.message));
-await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); localStorage.setItem('bi:exemplos', '1'); });
+await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); localStorage.setItem('bi:exemplos', '1'); sessionStorage.setItem('bi:editor-local', '1'); });
 await p.goto('http://localhost:8090/'); await p.waitForTimeout(4500);
 // nova maquete: terreno vazio
 await p.click('#nova'); await p.fill('.janela [name=nome]', 'Bairro do teste'); await p.click('.janela .modelo[data-m=vazio]'); await p.click('.janela .bt--sol');

@@ -4,7 +4,9 @@
 import { novoId } from './modelos.js';
 
 const CHAVE_SESSAO = 'bi:sessao';
-export const estado = { nuvem: false, versao: 'dev', usuario: null, sessao: null, online: navigator.onLine };
+export const estado = { nuvem: false, versao: 'dev', usuario: null, sessao: null, online: navigator.onLine, visitante: false, editorLocal: false };
+const lembrar = (k, v) => { try { if (v) sessionStorage.setItem(k, '1'); else sessionStorage.removeItem(k); } catch { /* */ } };
+const lembrado = (k) => { try { return sessionStorage.getItem(k) === '1'; } catch { return false; } };
 const ouvintes = new Set();
 export const aoMudar = (fn) => { ouvintes.add(fn); return () => ouvintes.delete(fn); };
 const avisar = (ev) => ouvintes.forEach((f) => { try { f(ev); } catch { /* */ } });
@@ -64,24 +66,30 @@ export async function iniciar() {
     const r = await api('eu'); if (r.ok) guardarUsuario(r.usuario); else if (r.erro === 'sessao') sairLocal();
   }
   if (!estado.nuvem) { estado.usuario = null; estado.sessao = null; }
+  estado.visitante = lembrado('bi:visitante') && !estado.sessao; estado.editorLocal = lembrado('bi:editor-local');
   addEventListener('online', () => { estado.online = true; avisar({ tipo: 'online' }); enviarPendentes(); });
   addEventListener('offline', () => { estado.online = false; avisar({ tipo: 'offline' }); });
   enviarPendentes();
   return estado;
 }
-export const precisaEntrar = () => estado.nuvem && !estado.sessao;
+// porta de entrada: aparece enquanto a pessoa não escolheu entrar (conta) ou visitar
+export const precisaPorta = () => !estado.visitante && (estado.nuvem ? !estado.sessao : !estado.editorLocal);
+export function virarVisitante() { estado.visitante = true; lembrar('bi:visitante', true); }
+export function sairVisitante() { estado.visitante = false; lembrar('bi:visitante', false); }
+export function editarLocal() { estado.editorLocal = true; estado.visitante = false; lembrar('bi:editor-local', true); lembrar('bi:visitante', false); }
 export function guardarUsuario(u, sessao) {
-  estado.usuario = u; if (sessao) estado.sessao = sessao;
+  estado.usuario = u; if (sessao) sairVisitante(); if (sessao) estado.sessao = sessao;
   try { localStorage.setItem('bi:usuario', JSON.stringify(u)); if (sessao) localStorage.setItem(CHAVE_SESSAO, sessao); } catch { /* */ }
 }
-function sairLocal() { estado.sessao = null; estado.usuario = null; try { localStorage.removeItem(CHAVE_SESSAO); localStorage.removeItem('bi:usuario'); } catch { /* */ } }
+function sairLocal() { estado.editorLocal = false; lembrar('bi:editor-local', false); estado.sessao = null; estado.usuario = null; try { localStorage.removeItem(CHAVE_SESSAO); localStorage.removeItem('bi:usuario'); } catch { /* */ } }
 export async function sair() { if (estado.sessao) await api('sair'); sairLocal(); }
 
 // ---------------- maquetes
-const resumo = (m) => ({ id: m.id, nome: m.nome, tipo: m.tipo, cidade: m.cidade || '', atualizado: m.atualizado, criado: m.criado, thumb: m.thumb || '', nota: m.nota ?? null, pecas: (m.objs || []).length, area: Object.keys(m.chao || {}).length, dono: m.dono || conta(), donoNome: m.donoNome || '' });
+const resumo = (m) => ({ id: m.id, nome: m.nome, tipo: m.tipo, cidade: m.cidade || '', atualizado: m.atualizado, criado: m.criado, thumb: m.thumb || '', nota: m.nota ?? null, publica: m.publica !== false, pecas: (m.objs || []).length, area: Object.keys(m.chao || {}).length, dono: m.dono || conta(), donoNome: m.donoNome || '' });
 
 // lista: as minhas (aparelho + nuvem) e as da equipe (só nuvem)
 export async function listar() {
+  if (estado.visitante) return listarVisitante();
   const locais = await localTodas(); const mapa = new Map(locais.map((m) => [m.id, { ...resumo(m), pendente: !!m.pendente, local: true }]));
   let equipe = [];
   if (estado.nuvem && estado.sessao && navigator.onLine) {
@@ -95,7 +103,26 @@ export async function listar() {
   return { minhas: [...mapa.values()].sort(ordem), equipe: equipe.sort(ordem) };
 }
 
+async function listarVisitante() {
+  const s = await loja('readonly'); const tudo = await pedir(s.getAll());
+  const ordem = (a, b) => String(b.atualizado).localeCompare(String(a.atualizado));
+  if (!estado.nuvem) return { minhas: [], equipe: tudo.filter((m) => m.conta === 'local' && m.publica !== false).map(resumo).sort(ordem) };
+  const guardadas = tudo.filter((m) => m.conta === 'visitante');
+  if (navigator.onLine) { const r = await api('publico.listar'); if (r.ok) return { minhas: [], equipe: r.maquetes.sort(ordem) }; }
+  return { minhas: [], equipe: guardadas.map(resumo).sort(ordem) }; // sem internet: as que já foram vistas
+}
+async function abrirVisitante(id) {
+  const l = await localUma(id);
+  if (!estado.nuvem) return l && l.publica !== false ? l : null;
+  if (navigator.onLine) {
+    const r = await api('publico.abrir', { id });
+    if (r.ok) { const m = { ...JSON.parse(await descomprimir(r.maquete.dados)), ...r.maquete.meta, conta: 'visitante' }; if (!l || l.conta === 'visitante') await localPor(m); return m; }
+  }
+  return l || null;
+}
+
 export async function abrir(id) {
+  if (estado.visitante) return abrirVisitante(id);
   const l = await localUma(id);
   if (estado.nuvem && estado.sessao && navigator.onLine && !(l && l.pendente)) {
     const r = await api('abrir', { id });
@@ -109,6 +136,7 @@ export async function abrir(id) {
 
 let filaEnvio = Promise.resolve();
 export async function salvar(m, { enviar = true } = {}) {
+  if (estado.visitante) throw new Error('Visitante não salva');
   m.atualizado = new Date().toISOString(); m.conta = conta(); m.dono = m.dono || conta(); if (estado.usuario) m.donoNome = m.donoNome || estado.usuario.nome;
   m.pendente = !!(estado.nuvem && estado.sessao); await localPor(m); avisar({ tipo: 'salvo', id: m.id, nuvem: false });
   if (enviar && m.pendente) filaEnvio = filaEnvio.then(() => enviarUma(m.id));
@@ -136,5 +164,5 @@ export async function duplicar(m, nome) {
   const c = JSON.parse(JSON.stringify(m)); c.id = novoId(); c.nome = nome || m.nome + ' (cópia)'; c.criado = new Date().toISOString(); c.dono = conta(); c.donoNome = estado.usuario?.nome || '';
   await salvar(c); return c;
 }
-export const ehMinha = (m) => !estado.usuario || !m.dono || m.dono === conta() || m.dono === 'local';
-export const podeEditar = (m) => ehMinha(m) || estado.usuario?.papel === 'admin';
+export const ehMinha = (m) => !estado.visitante && (!estado.usuario || !m.dono || m.dono === conta() || m.dono === 'local');
+export const podeEditar = (m) => !estado.visitante && (ehMinha(m) || estado.usuario?.papel === 'admin');
