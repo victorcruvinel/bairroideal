@@ -29,7 +29,7 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).
-- Branch de trabalho: `claude/bairro-ideal-mockup-app-6j87sk`.
+- Branch de trabalho: `claude/bairro-ideal-mockup-app-6j87sk`. **Publicar sempre também na `main`** (autorizado pelo Victor em 17/11; o Cloudflare publica a partir da `main`).
 
 ## Testes
 `npm test` (Node puro) · `node test/interacoes.mjs` e `node test/login.mjs` (Playwright; o primeiro precisa de `node test/servidor.mjs 8090`).
