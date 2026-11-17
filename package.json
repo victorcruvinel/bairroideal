@@ -10,6 +10,6 @@
     "deploy": "npx wrangler deploy"
   },
   "devDependencies": {
-    "wrangler": "4.40.0"
+    "wrangler": "4.164.0"
   }
 }
