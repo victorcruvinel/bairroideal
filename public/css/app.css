@@ -584,3 +584,31 @@ html[data-copiar="sim"] :is(.texto, .lousa, .hist-txt, .probs, .dicas, .cmp-tab)
 .desafio[open] summary::after { content: ''; }
 .desafio p { margin-top: 6px; color: #fff; }
 .ed-regua .ideia { font-size: 12.5px; }
+
+/* =================================================================== MODO TERRENO (setas) */
+.ed-terreno { display: none; }
+.modo-terreno .ed-doca-top, .modo-terreno .ed-opc, .modo-terreno .ed-pecas { display: none; }
+.modo-terreno .ed-terreno { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 4px; }
+.ter-medidas { display: grid; gap: 2px; font-size: 13px; font-weight: 700; color: var(--tinta2); } .ter-medidas > b { font-family: var(--titulo); font-size: 18px; color: var(--tinta); }
+.ter-medidas span b { color: var(--verde); } .ter-parte { color: #1d7fb3 !important; font-weight: 900 !important; }
+.ter-dica { font-size: 13.5px; font-weight: 700; color: var(--tinta2); line-height: 1.45; background: #eef7ff; border-radius: 14px; padding: 9px 12px; }
+.ter-bts { display: flex; flex-direction: column; gap: 6px; } .ter-bts .bt { padding: 8px 12px; font-size: 14px; }
+.ed-setas { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.ed-seta { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 4px; pointer-events: auto; }
+.ed-seta-mais { width: 58px; height: 58px; border-radius: 50%; background: var(--sol); border: 3px solid #fff; box-shadow: 0 5px 0 var(--sol2), 0 10px 20px rgba(0,0,0,.2); display: grid; place-items: center; position: relative; animation: setaPulsa 1.8s ease-in-out infinite; }
+.ed-seta-mais i { font-style: normal; font-size: 26px; font-weight: 900; color: var(--tinta); line-height: 1; display: block; }
+.ed-seta-mais b { position: absolute; right: -4px; top: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--verde); color: #fff; font-size: 14px; display: grid; place-items: center; border: 2px solid #fff; }
+.ed-seta-menos { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 2px solid var(--linha); font-weight: 900; font-size: 18px; color: var(--perigo); box-shadow: 0 3px 0 var(--linha); }
+.ed-seta-mais:active, .ed-seta-menos:active { transform: scale(.92); }
+@keyframes setaPulsa { 0%, 100% { box-shadow: 0 5px 0 var(--sol2), 0 0 0 0 rgba(255,201,60,.55); } 50% { box-shadow: 0 5px 0 var(--sol2), 0 0 0 10px rgba(255,201,60,0); } }
+.modo-terreno .ed-sel { display: none; }
+@media (max-width: 760px) {
+  .modo-terreno .ed-terreno { grid-template-columns: 1fr; gap: 8px; } .ter-bts { flex-direction: row; } .ter-bts .bt { flex: 1; padding: 8px 4px; font-size: 12.5px; }
+  .ter-dica { font-size: 12.5px; padding: 7px 10px; } .ed-seta-mais { width: 48px; height: 48px; } .ed-seta-mais i { font-size: 22px; }
+}
+/* exposição: botões do cartão sem cortar */
+.expo-b { flex-wrap: wrap; } .expo-b .bt { flex: 1 1 auto; min-width: 0; padding: 8px 6px; font-size: 13px; }
+.cartao-m .info { min-width: 0; } .cartao-m .linha { flex-wrap: nowrap; } .cartao-m .linha .chip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cartao-m .nota { flex: none; }
+.grade-m { grid-template-columns: repeat(auto-fit, minmax(270px, 320px)); }
+@media (max-width: 760px) { .grade-m { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); } }

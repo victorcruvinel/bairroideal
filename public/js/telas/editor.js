@@ -10,12 +10,10 @@ import { chipTipo, TIPOS, notaTxt, corNota, prepararParaSalvar } from './comum.j
 import { historiaAutomatica } from './historia.js';
 
 const FERRAMENTAS = [
-  ['colocar', '✏️', 'Colocar', 'Toque numa peça embaixo e depois no mapa'],
+  ['colocar', '✏️', 'Colocar', 'Escolha uma peça embaixo e toque no mapa. Chão (grama, rua…) pinta o quadradinho tocado; arraste para pintar vários'],
   ['mao', '✋', 'Mover', 'Arraste uma peça para mudar de lugar, ou arraste o chão para andar pelo mapa'],
-  ['apagar', '🧽', 'Apagar', 'Toque nas peças para tirar (o chão fica)'],
-  ['aumentar', '🟩', 'Aumentar', 'Pinte onde não tem chão para aumentar o terreno'],
-  ['cortar', '✂️', 'Cortar', 'Pinte para cortar pedaços do terreno'],
-  ['balde', '🪣', 'Balde', 'Toque para pintar uma área inteira do mesmo chão'],
+  ['apagar', '🧽', 'Apagar', 'Toque numa peça para tirar. Tocando no chão pintado, ele volta a ser grama'],
+  ['terreno', '📐', 'Terreno', 'Use as setas para aumentar (＋) ou diminuir (－) o terreno. Arraste no mapa para escolher só uma parte e fazer um L'],
 ];
 const sem = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -27,7 +25,7 @@ export async function montar(app, [id]) {
   let pref = {}; try { pref = JSON.parse(localStorage.getItem('bi:editor') || '{}'); } catch { /* */ }
 
   const S = {
-    ferr: edita ? 'colocar' : 'mao', peca: edita ? 'casa' : null, cor: 0, rot: 0, pincel: 1, cat: pref.cat || 'casas', busca: '',
+    ferr: edita ? 'colocar' : 'mao', peca: edita ? 'casa' : null, cor: 0, rot: 0, area: null, cat: pref.cat || 'casas', busca: '',
     planta: false, noite: false, eixos: false, regua: { on: false, a: null, b: null }, sel: null, hover: null, cam: null, painel: pref.painel ?? innerWidth > 980, aba: pref.aba || 'termo',
   };
   let ix = indexar(m), sujo = false, quadroPedido = false, analise = analisar(m), desfazer = [], refazer = [], salvarTimer = null, salvando = false, pendente = false;
@@ -53,8 +51,7 @@ export async function montar(app, [id]) {
     <div class="ed-dica"></div>
     <div class="ed-ferr" role="toolbar" aria-label="Ferramentas">
       ${FERRAMENTAS.map(([f, e, n]) => `<button class="ed-f" data-f="${f}" title="${n}"><span>${e}</span><small>${n}</small></button>`).join('')}
-      <hr><div class="ed-pincel" title="Tamanho do pincel">${[1, 2, 3].map((p) => `<button data-p="${p}" title="Pincel ${p === 1 ? 'pequeno' : p === 2 ? 'médio' : 'grande'}"><i style="width:${4 + p * 4}px;height:${4 + p * 4}px"></i></button>`).join('')}</div>
-      <hr><button class="ed-f" data-a="crescer" title="Crescer o terreno uma volta"><span>⤢</span><small>Crescer</small></button>
+      
     </div>
     <div class="ed-vista">
       <button class="redondo" data-a="girar" title="Girar a vista (Q / E)">↻</button>
@@ -63,6 +60,7 @@ export async function montar(app, [id]) {
       <button class="redondo" data-a="regua" title="Régua: meça a distância entre dois pontos (M)">📏</button><button class="redondo ed-xy" data-a="eixos" title="Plano cartesiano (eixos x e y)"><i>x</i><i>y</i></button>
     </div>
     <div class="ed-sel esconde"></div>
+    <div class="ed-setas esconde">${[['N', 'para cima no mapa'], ['L', 'para a direita no mapa'], ['S', 'para baixo no mapa'], ['O', 'para a esquerda no mapa']].map(([d, t]) => `<div class="ed-seta" data-lado="${d}"><button class="ed-seta-mais" data-seta="${d}" data-op="mais" title="Aumentar ${t}"><i>➜</i><b>＋</b></button><button class="ed-seta-menos" data-seta="${d}" data-op="menos" title="Diminuir ${t}">－</button></div>`).join('')}</div>
     <div class="ed-regua lousa esconde"></div>
     <section class="ed-doca">
       <div class="ed-doca-top">
@@ -71,6 +69,7 @@ export async function montar(app, [id]) {
       </div>
       <div class="ed-opc"></div>
       <div class="ed-pecas" role="listbox" aria-label="Peças"></div>
+      <div class="ed-terreno"></div>
     </section>
     <aside class="ed-painel" aria-label="Sobre o bairro">
       <div class="ed-abas"><button data-aba="termo"><span>🌡️</span>Termômetro</button><button data-aba="metas"><span>🎯</span>Metas</button><button data-aba="sobre"><span>📝</span>Sobre</button><button data-aba="caps"><span>📖</span>Capítulos</button><button data-aba="mat"><span>📐</span>Matemática</button></div>
@@ -117,7 +116,7 @@ export async function montar(app, [id]) {
     const opt = { noite: S.noite, planta: S.planta, selecionado: S.sel, marcas: marcasPincel() };
     const f = fantasma(); if (f) opt.fantasma = f;
     const r = desenhar(ctx, ix, S.cam, W, H, opt); ultimosDesenhados = r.desenhados;
-    if (S.eixos) desenharEixos(); if (S.regua.on) desenharRegua();
+    if (S.eixos) desenharEixos(); if (S.regua.on) desenharRegua(); posicionarSetas();
     if (S.sel) posicionarSel();
   }
   // ponto do mundo (centro do quadradinho x,y) na tela
@@ -178,15 +177,19 @@ export async function montar(app, [id]) {
 
   // ------------------------------------------------ peças e regras de lugar
   const pecaAtual = () => (S.peca ? peca(S.peca) : null);
-  const celsPincel = (c) => { const r = S.pincel - 1, out = []; for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) if (i * i + j * j <= r * r + r) out.push([c.x + i, c.y + j]); return out; };
+  const celsPincel = (c) => [[c.x, c.y]];
+  // parte do terreno escolhida no modo Terreno (sem escolha = terreno todo)
+  const areaAtual = () => S.area || { x0: ix.lim.x0, y0: ix.lim.y0, x1: ix.lim.x1 - 1, y1: ix.lim.y1 - 1 };
   function marcasPincel() {
-    if (!S.hover || !edita || S.arrastandoMapa) return [];
-    const p = pecaAtual();
-    if (['aumentar', 'cortar', 'apagar'].includes(S.ferr) || (S.ferr === 'colocar' && p && p.tipo === 'chao')) {
-      const cor = S.ferr === 'cortar' ? '#ff4d4d' : S.ferr === 'apagar' ? '#ffb703' : S.ferr === 'aumentar' ? '#3ddc84' : '#ffffff';
-      return celsPincel(S.hover).map(([x, y]) => ({ x, y, cor }));
+    if (!edita || S.arrastandoMapa) return [];
+    if (S.ferr === 'terreno') {
+      if (!S.area) return []; const { x0, y0, x1, y1 } = S.area; if ((x1 - x0 + 1) * (y1 - y0 + 1) > 6000) return [];
+      const out = []; for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) out.push({ x, y, cor: '#4cc9f0', borda: '#1d7fb3' }); return out;
     }
-    if (S.ferr === 'balde') return [{ x: S.hover.x, y: S.hover.y, cor: '#4cc9f0' }];
+    if (!S.hover) return [];
+    const p = pecaAtual();
+    if (S.ferr === 'apagar') return [{ x: S.hover.x, y: S.hover.y, cor: '#ffb703' }];
+    if (S.ferr === 'colocar' && p && p.tipo === 'chao') return [{ x: S.hover.x, y: S.hover.y, cor: '#ffffff' }];
     return [];
   }
   function cabe(t, x, y, r, ignorar) {
@@ -242,31 +245,48 @@ export async function montar(app, [id]) {
 
   // ------------------------------------------------ ações no mapa
   function pintarChao(c, t) {
-    let mud = false;
-    for (const [x, y] of celsPincel(c)) {
-      const k = x + ',' + y;
-      if (S.ferr === 'aumentar') { if (!m.chao[k]) { m.chao[k] = 'grama'; mud = true; } continue; }
-      if (S.ferr === 'cortar') { if (m.chao[k]) { delete m.chao[k]; mud = true; } continue; }
-      if (m.chao[k] !== t) { m.chao[k] = t; mud = true; }
-    }
-    if (S.ferr === 'cortar' && mud) { const fora = (o) => { const [w, d] = tamanho(o); for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (!m.chao[(o.x + i) + ',' + (o.y + j)]) return true; return false; }; m.objs = m.objs.filter((o) => !fora(o)); }
-    if (mud) { ix = indexar(m); pedir(); }
+    const k = c.x + ',' + c.y; if (!m.chao[k] || m.chao[k] === t) return;
+    m.chao[k] = t; ix = indexar(m); pedir();
   }
   function apagarEm(c) {
-    const alvo = new Set(); for (const [x, y] of celsPincel(c)) { const o = ix.ocup.get(K(x, y)); if (o) alvo.add(o); }
-    if (!alvo.size) return; m.objs = m.objs.filter((o) => !alvo.has(o)); if (alvo.has(S.sel)) { S.sel = null; esconderSel(); } ix = indexar(m); pedir();
-  }
-  function balde(c, t) {
-    const k0 = c.x + ',' + c.y, de = m.chao[k0]; if (!de || de === t) return;
-    const fila = [[c.x, c.y]], visto = new Set([k0]); let n = 0;
-    while (fila.length && n < 30000) { const [x, y] = fila.pop(); m.chao[x + ',' + y] = t; n++; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (x + dx) + ',' + (y + dy); if (!visto.has(k) && m.chao[k] === de) { visto.add(k); fila.push([x + dx, y + dy]); } } }
+    const o = ix.ocup.get(K(c.x, c.y));
+    if (o) { m.objs = m.objs.filter((x) => x !== o); if (o === S.sel) { S.sel = null; esconderSel(); } }
+    else { const k = c.x + ',' + c.y; if (!m.chao[k] || m.chao[k] === 'grama') return; m.chao[k] = 'grama'; }
     ix = indexar(m); pedir();
+  }
+  const tiraForaDoChao = () => { const fora = (o) => { const [w, d] = tamanho(o); for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) if (!m.chao[(o.x + i) + ',' + (o.y + j)]) return true; return false; }; const antes = m.objs.length; m.objs = m.objs.filter((o) => !fora(o)); return antes - m.objs.length; };
+  // setas do terreno: cada linha (ou coluna) da parte escolhida ganha/perde 1 quadradinho na ponta daquele lado
+  const LADOS = { N: [0, -1], S: [0, 1], L: [1, 0], O: [-1, 0] };
+  function mudarTerreno(lado, mais) {
+    const [dx, dy] = LADOS[lado], ar = areaAtual(), horiz = dx !== 0;
+    const linhas = new Map(); // linha -> lista de posições que existem
+    for (const k of Object.keys(m.chao)) {
+      const [x, y] = k.split(',').map(Number); if (x < ar.x0 || x > ar.x1 || y < ar.y0 || y > ar.y1) continue;
+      const l = horiz ? y : x, v = horiz ? x : y; if (!linhas.has(l)) linhas.set(l, []); linhas.get(l).push(v);
+    }
+    if (!linhas.size) { aviso('Escolha uma parte que tenha chão 🙂', 'erro'); return; }
+    const total = Object.keys(m.chao).length;
+    if (!mais && total - linhas.size < 1) { aviso('O terreno precisa ter pelo menos 1 quadradinho', 'erro'); return; }
+    comecarMudanca(); let n = 0;
+    for (const [l, vs] of linhas) {
+      const ponta = (horiz ? dx : dy) > 0 ? Math.max(...vs) : Math.min(...vs), sinal = (horiz ? dx : dy);
+      if (mais) { const v = ponta + sinal, k = horiz ? v + ',' + l : l + ',' + v; if (!m.chao[k]) { m.chao[k] = 'grama'; n++; } }
+      else if (vs.length > 1 || !S.area) { const k = horiz ? ponta + ',' + l : l + ',' + ponta; delete m.chao[k]; n++; }
+    }
+    const caiu = mais ? 0 : tiraForaDoChao();
+    if (S.area) { // a parte escolhida acompanha a mudança
+      const d = mais ? 1 : -1;
+      if (lado === 'L') S.area.x1 = Math.max(S.area.x0, S.area.x1 + d); if (lado === 'O') S.area.x0 = Math.min(S.area.x1, S.area.x0 - d);
+      if (lado === 'S') S.area.y1 = Math.max(S.area.y0, S.area.y1 + d); if (lado === 'N') S.area.y0 = Math.min(S.area.y1, S.area.y0 - d);
+    }
+    ix = indexar(m); terminarMudanca(); pedir(); desenharTerreno();
+    if (caiu) aviso(`${caiu} ${caiu === 1 ? 'peça saiu' : 'peças saíram'} junto com o chão (dá para desfazer ↶)`, 'ok', 2600);
+    void n;
   }
   function crescer() {
     comecarMudanca(); const novos = [];
     for (const k of Object.keys(m.chao)) { const [x, y] = k.split(',').map(Number); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const n = (x + dx) + ',' + (y + dy); if (!m.chao[n]) novos.push(n); } }
-    novos.forEach((n) => { m.chao[n] = 'grama'; }); ix = indexar(m); terminarMudanca(); pedir();
-    aviso(`Terreno cresceu! Agora tem ${num(Object.keys(m.chao).length)} quadradinhos 🟩`);
+    novos.forEach((n) => { m.chao[n] = 'grama'; }); ix = indexar(m); S.area = null; terminarMudanca(); pedir(); desenharTerreno();
   }
   function colocarObjeto(c) {
     const f = fantasma(); if (!f) return false;
@@ -288,7 +308,12 @@ export async function montar(app, [id]) {
   }
   cv.addEventListener('pointerdown', (e) => {
     cv.setPointerCapture(e.pointerId); ponteiros.set(e.pointerId, pos(e));
-    if (ponteiros.size === 2) { if (gesto && gesto.tipo !== 'mapa') { terminarMudanca(); } gesto = { tipo: 'mapa', dois: true, ultimo: centro() }; S.arrastandoMapa = true; return; }
+    tipos.set(e.pointerId, e.pointerType);
+    if (ponteiros.size === 2) {
+      if (gesto && gesto.tipo === 'espera') clearTimeout(gesto.t); // era o começo de uma pinça: não coloca nada
+      else if (gesto && gesto.tipo !== 'mapa') terminarMudanca();
+      gesto = { tipo: 'mapa', dois: true, ultimo: centro(), dist: distDedos() }; S.arrastandoMapa = true; esconderSel(); return;
+    }
     if (ponteiros.size > 2) return;
     const [x, y] = pos(e), c = cel(x, y); S.hover = c;
     if (S.regua.on && e.button === 0 && !espaco) {
@@ -298,7 +323,14 @@ export async function montar(app, [id]) {
     }
     const pan = e.button === 1 || e.button === 2 || espaco || !edita;
     if (pan) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y] }; return; }
+    // no toque, espera um instante: se vier um segundo dedo é pinça (zoom), não é para colocar peça
+    if (e.pointerType === 'touch') { gesto = { tipo: 'espera', x, y, c, t: setTimeout(() => { if (gesto && gesto.tipo === 'espera') rodarEspera(); }, 110) }; return; }
+    acaoInicial(x, y, c);
+  });
+  function rodarEspera() { const g = gesto; clearTimeout(g.t); gesto = null; acaoInicial(g.x, g.y, g.c); }
+  function acaoInicial(x, y, c) {
     const p = pecaAtual();
+    if (S.ferr === 'terreno') { gesto = { tipo: 'area', a: c, ini: [x, y] }; S.area = { x0: c.x, y0: c.y, x1: c.x, y1: c.y }; desenharTerreno(); pedir(); return; }
     if (S.ferr === 'mao') {
       const o = objetoEm(x, y);
       gesto = o ? { tipo: 'talvez-mover', o, ini: [x, y], c } : { tipo: 'mapa', ultimo: [x, y], ini: [x, y], tocar: true };
@@ -307,15 +339,20 @@ export async function montar(app, [id]) {
     if (S.ferr === 'colocar' && (!p)) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y], tocar: true }; return; }
     comecarMudanca();
     if (S.ferr === 'colocar' && p.tipo === 'obj') { const ok = colocarObjeto(c); gesto = { tipo: 'colocar', ult: c.x + ',' + c.y, ini: [x, y], pos: [x, y], colocou: ok }; if (ok) feedbackLocal(x, y); return; }
-    if (S.ferr === 'balde') { balde(c, p && p.tipo === 'chao' ? p.id : 'grama'); gesto = { tipo: 'nada' }; return; }
     if (S.ferr === 'apagar') { apagarEm(c); gesto = { tipo: 'apagar', ult: c.x + ',' + c.y }; return; }
-    pintarChao(c, p && p.tipo === 'chao' ? p.id : 'grama'); gesto = { tipo: 'pintar', ult: c.x + ',' + c.y, t: p && p.tipo === 'chao' ? p.id : 'grama' };
-  });
+    pintarChao(c, p.id); gesto = { tipo: 'pintar', ult: c.x + ',' + c.y, t: p.id };
+  }
+  const tipos = new Map();
+  const distDedos = () => { const ps = [...ponteiros.values()]; return Math.hypot(ps[0][0] - ps[1][0], ps[0][1] - ps[1][1]) || 1; };
   const centro = () => { const ps = [...ponteiros.values()]; return [(ps[0][0] + ps[1][0]) / 2, (ps[0][1] + ps[1][1]) / 2]; };
   cv.addEventListener('pointermove', (e) => {
     const [x, y] = pos(e);
     if (ponteiros.has(e.pointerId)) ponteiros.set(e.pointerId, [x, y]);
-    if (gesto && gesto.dois && ponteiros.size >= 2) { const c = centro(); arrastar(c[0] - gesto.ultimo[0], c[1] - gesto.ultimo[1]); gesto.ultimo = c; return; }
+    if (gesto && gesto.dois && ponteiros.size >= 2) { // pinça: aproxima/afasta e anda com dois dedos
+      const c = centro(), d = distDedos(); if (gesto.dist) zoom(d / gesto.dist, c[0], c[1]); gesto.dist = d;
+      arrastar(c[0] - gesto.ultimo[0], c[1] - gesto.ultimo[1]); gesto.ultimo = c; return;
+    }
+    if (gesto && gesto.tipo === 'espera') { if (Math.hypot(x - gesto.x, y - gesto.y) < 4) return; rodarEspera(); }
     const c = cel(x, y), mudouCel = !S.hover || S.hover.x !== c.x || S.hover.y !== c.y; S.hover = c;
     if (!gesto) { if (mudouCel) pedir(); cv.style.cursor = cursor(); return; }
     const k = c.x + ',' + c.y;
@@ -326,11 +363,13 @@ export async function montar(app, [id]) {
       case 'colocar': if (k !== gesto.ult) { gesto.ult = k; const p = pecaAtual(); if (p && OBJETOS[p.id].w === 1 && OBJETOS[p.id].d === 1 && colocarObjeto(c)) gesto.colocou = true; } gesto.pos = [x, y]; break;
       case 'pintar': if (k !== gesto.ult) { gesto.ult = k; pintarChao(c, gesto.t); } break;
       case 'apagar': if (k !== gesto.ult) { gesto.ult = k; apagarEm(c); } break;
+      case 'area': { const a2 = gesto.a; S.area = { x0: Math.min(a2.x, c.x), y0: Math.min(a2.y, c.y), x1: Math.max(a2.x, c.x), y1: Math.max(a2.y, c.y) }; if (mudouCel) { desenharTerreno(); pedir(); } break; }
       default: if (mudouCel) pedir();
     }
   });
   const soltar = (e) => {
-    ponteiros.delete(e.pointerId);
+    ponteiros.delete(e.pointerId); tipos.delete(e.pointerId);
+    if (gesto && gesto.tipo === 'espera') rodarEspera();
     if (gesto && gesto.dois) { if (!ponteiros.size) { gesto = null; S.arrastandoMapa = false; } return; }
     if (!gesto) return; const g = gesto; gesto = null; S.arrastandoMapa = false;
     if (g.tipo === 'talvez-mover') selecionar(g.o);
@@ -352,11 +391,15 @@ export async function montar(app, [id]) {
     S.cam = { ...c2, x: S.cam.x + d1[0] - d2[0], y: S.cam.y + d1[1] - d2[1] }; anim = null; pedir();
   }
   cv.addEventListener('wheel', (e) => {
-    e.preventDefault(); if (e.ctrlKey) return; // pinça do trackpad: desligada
-    const [x, y] = pos(e); const mouse = e.deltaMode === 1 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50 && Number.isInteger(e.deltaY));
+    e.preventDefault(); const [x, y] = pos(e);
+    if (e.ctrlKey) { zoom(Math.exp(-e.deltaY * .012), x, y); return; } // pinça do trackpad (Chrome, Firefox, Edge) const mouse = e.deltaMode === 1 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50 && Number.isInteger(e.deltaY));
     if (mouse) zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, x, y); else arrastar(-e.deltaX, -e.deltaY);
   }, { passive: false });
-  const cursor = () => (!edita || S.ferr === 'mao' || (S.ferr === 'colocar' && !S.peca) ? 'grab' : S.ferr === 'balde' ? 'cell' : 'crosshair');
+  // pinça do trackpad no Safari do Mac (e iPad com trackpad): eventos "gesture"
+  let escalaG = 1; const temToque = () => [...tipos.values()].includes('touch');
+  cv.addEventListener('gesturestart', (e) => { e.preventDefault(); escalaG = e.scale || 1; });
+  cv.addEventListener('gesturechange', (e) => { e.preventDefault(); if (temToque()) return; const r = cv.getBoundingClientRect(); zoom((e.scale || 1) / escalaG, e.clientX - r.left, e.clientY - r.top); escalaG = e.scale || 1; });
+  const cursor = () => (!edita || S.ferr === 'mao' || (S.ferr === 'colocar' && !S.peca) ? 'grab' : 'crosshair');
 
   // teclado
   const tecla = (e) => {
@@ -373,7 +416,7 @@ export async function montar(app, [id]) {
     else if ((k === 'delete' || k === 'backspace') && S.sel) apagarSel();
     else if (k === 'escape') { S.sel = null; esconderSel(); S.peca = null; desenharPecas(); pedir(); }
     else if (k.startsWith('arrow')) { const v = { arrowup: [0, 60], arrowdown: [0, -60], arrowleft: [60, 0], arrowright: [-60, 0] }[k]; arrastar(...v); e.preventDefault(); }
-    else if (/^[1-6]$/.test(k) && edita) escolherFerr(FERRAMENTAS[+k - 1][0]);
+    else if (/^[1-4]$/.test(k) && edita) escolherFerr(FERRAMENTAS[+k - 1][0]);
   };
   const solta = (e) => { if (e.key === ' ') { espaco = false; cv.style.cursor = cursor(); } };
   document.addEventListener('keydown', tecla); document.addEventListener('keyup', solta);
@@ -407,7 +450,7 @@ export async function montar(app, [id]) {
   function escolherFerr(f) {
     S.ferr = f; ed.querySelectorAll('.ed-f[data-f]').forEach((b) => b.classList.toggle('on', b.dataset.f === f));
     const d = FERRAMENTAS.find((x) => x[0] === f); dica.innerHTML = `<b>${d[1]} ${d[2]}</b> · ${d[3]}`; cv.style.cursor = cursor();
-    ed.querySelector('.ed-pincel').classList.toggle('apagado', !['colocar', 'apagar', 'aumentar', 'cortar'].includes(f)); pedir();
+    ed.classList.toggle('modo-terreno', f === 'terreno'); if (f !== 'terreno') S.area = null; desenharTerreno(); pedir();
   }
   function girarVista(passo = 1) { const rot = ((S.cam.rot || 0) + passo) % 4; S.cam = { ...S.cam, rot }; if (S.sel) posicionarSel(); pedir(); }
   function alternarNoite() { S.noite = !S.noite; ed.classList.toggle('noite', S.noite); ed.querySelector('[data-a=noite]').classList.toggle('on', S.noite); ed.querySelector('[data-a=noite]').textContent = S.noite ? '☀️' : '🌙'; pedir(); }
@@ -417,7 +460,8 @@ export async function montar(app, [id]) {
   }
   ed.addEventListener('click', async (e) => {
     const f = e.target.closest('.ed-f[data-f]'); if (f) { escolherFerr(f.dataset.f); return; }
-    const pc = e.target.closest('[data-p]'); if (pc) { S.pincel = +pc.dataset.p; ed.querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('on', b === pc)); pedir(); return; }
+    const st = e.target.closest('[data-seta]'); if (st) { mudarTerreno(st.dataset.seta, st.dataset.op === 'mais'); return; }
+    const tr = e.target.closest('[data-terreno]'); if (tr) { const a2 = tr.dataset.terreno; if (a2 === 'todo') { S.area = null; desenharTerreno(); pedir(); } if (a2 === 'volta') crescer(); if (a2 === 'pronto') escolherFerr('colocar'); return; }
     const md = e.target.closest('.ed-modos [data-modo]');
     if (md) {
       const v = md.dataset.modo; if (v === '3d' || v === 'planta') return trocarVista(v === 'planta');
@@ -454,14 +498,14 @@ export async function montar(app, [id]) {
     const cores = p.tipo === 'obj' && p.cores ? p.cores : 0;
     opc.innerHTML = `<span class="ed-opc-n">${p.tipo === 'chao' ? '🖌️' : '✏️'} <b>${p.nome}</b></span>
       ${cores ? `<span class="ed-cores">${Array.from({ length: cores }, (_, i) => `<button data-cor="${i}" class="${i === S.cor ? 'on' : ''}" title="Cor ${i + 1}"><img src="${miniatura(p.id, i, 44)}" alt=""></button>`).join('')}</span>` : ''}
-      ${p.tipo === 'obj' ? `<button class="bt bt--leve" data-girar>🔄 Girar <small>(R)</small></button>` : `<span class="ed-opc-d">Arraste no mapa para pintar · use o <b>🪣 balde</b> para áreas grandes</span>`}`;
+      ${p.tipo === 'obj' ? `<button class="bt bt--leve" data-girar>🔄 Girar <small>(R)</small></button>` : `<span class="ed-opc-d">Toque num quadradinho para pintar · arraste para pintar vários</span>`}`;
   }
   cats.addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (!b) return; S.cat = b.dataset.cat; S.busca = ''; busca.value = ''; desenharCats(); desenharPecas(); pecasEl.scrollLeft = 0; guardarPref(); });
   busca.addEventListener('input', () => { S.busca = busca.value.trim(); desenharCats(); desenharPecas(); });
   pecasEl.addEventListener('click', (e) => {
     const b = e.target.closest('.pc'); if (!b) return;
     if (S.peca === b.dataset.id && S.ferr === 'colocar') { S.peca = null; } else { S.peca = b.dataset.id; S.cor = 0; }
-    if (!['colocar', 'balde'].includes(S.ferr) || (S.ferr === 'balde' && peca(S.peca)?.tipo !== 'chao')) escolherFerr('colocar');
+    if (S.ferr !== 'colocar') escolherFerr('colocar');
     S.sel = null; esconderSel(); desenharPecas(); pedir();
   });
   opc.addEventListener('click', (e) => {
@@ -496,7 +540,7 @@ export async function montar(app, [id]) {
         <label class="campo">Cidade (opcional)<input name="cidade" maxlength="60" value="${esc(m.cidade || '')}" placeholder="Ex.: Uberlândia - MG" ${edita ? '' : 'disabled'}></label>
         <label class="campo">A história do bairro<textarea name="historia" maxlength="6000" rows="9" placeholder="Como o bairro nasceu? Quem mora aqui? O que tem de bom e o que precisa melhorar?" ${edita ? '' : 'disabled'}>${esc(m.historia || '')}</textarea></label>
         <label class="ed-pub"><input type="checkbox" name="publica" ${m.publica !== false ? 'checked' : ''} ${edita ? '' : 'disabled'}><span><b>🏛️ Mostrar na exposição</b><small>Visitantes (sem conta) podem ver esta maquete.</small></span></label>
-        <p class="ed-p">📏 Terreno com <b>${num(c.area)}</b> quadradinhos e <b>${num(c.pecas)}</b> peças. Para aumentar, use <b>🟩 Aumentar</b> ou <b>⤢ Crescer</b>; para recortar, <b>✂️ Cortar</b>.</p>`;
+        <p class="ed-p">📏 Terreno com <b>${num(c.area)}</b> quadradinhos e <b>${num(c.pecas)}</b> peças. Para aumentar ou diminuir, use a ferramenta <b>📐 Terreno</b> (setas).</p>`;
       abaC.oninput = (e) => {
         const n = e.target.name; if (n === 'publica') { m.publica = e.target.checked; mudouTexto(); aviso(m.publica ? '🏛️ Agora aparece na exposição' : '🔒 Saiu da exposição'); return; }
         if (!['nome', 'cidade', 'historia'].includes(n)) return; m[n] = e.target.value;
@@ -557,9 +601,38 @@ export async function montar(app, [id]) {
   // ajudantes para os testes automáticos (posição de um quadradinho na tela)
   window.__celTela = (x, y) => { const G = lapis(ctx, S.cam, W, H, { planta: S.planta }); const [X, Y] = [x, y]; const r = cv.getBoundingClientRect(); const pt = S.planta ? G.P(X + .5, Y + .5) : G.P(X + .5, Y + .5); return S.cam.rot ? null : [r.left + pt[0], r.top + pt[1]]; };
   window.__objEm = (x, y) => ix.ocup.get(K(x, y))?.t || null;
+  window.__chao = (x, y) => m.chao[x + ',' + y] || null;
+  window.__zoom = () => S.cam.z; window.__pecas = () => m.objs.length;
+
+  // ------------------------------------------------ modo Terreno: painel com medidas e setas em volta da parte escolhida
+  const terrEl = $('.ed-terreno'), setasEl = $('.ed-setas');
+  function desenharTerreno() {
+    const on = S.ferr === 'terreno' && edita; setasEl.classList.toggle('esconde', !on); if (!on) return;
+    const n = ix.chao.size, L = ix.lim.x1 - ix.lim.x0, A = ix.lim.y1 - ix.lim.y0, ar = S.area;
+    terrEl.innerHTML = `<div class="ter-medidas"><b>📐 Terreno</b><span>${n} quadradinhos × 100 m² = <b>${num(n * 100)} m²</b></span><span>cabe num retângulo de ${L} × ${A} (${num(L * 10)} m × ${num(A * 10)} m)</span>
+      ${ar ? `<span class="ter-parte">🟦 Parte escolhida: ${ar.x1 - ar.x0 + 1} × ${ar.y1 - ar.y0 + 1} quadradinhos</span>` : ''}</div>
+      <p class="ter-dica">Toque nas <b>setas ➜ ＋</b> em volta do terreno para aumentar daquele lado, e no <b>－</b> para diminuir.<br>Para fazer um <b>L</b>: arraste no mapa para escolher só uma parte (fica azul) e use a seta.</p>
+      <div class="ter-bts"><button class="bt" data-terreno="todo" ${ar ? '' : 'disabled'}>🟩 Terreno todo</button><button class="bt" data-terreno="volta">⤢ Crescer em volta</button><button class="bt bt--verde" data-terreno="pronto">✅ Pronto</button></div>`;
+    posicionarSetas();
+  }
+  function posicionarSetas() {
+    if (setasEl.classList.contains('esconde')) return;
+    const ar = areaAtual(), G = lapis(ctx, S.cam, W, H, { planta: S.planta }), rot = S.cam.rot || 0;
+    const tela = (x, y) => { const [X, Y] = girar(rot, x, y); return G.P(X, Y); };
+    const mx = (ar.x0 + ar.x1 + 1) / 2, my = (ar.y0 + ar.y1 + 1) / 2, c = tela(mx, my);
+    const pontos = { N: [mx, ar.y0], S: [mx, ar.y1 + 1], O: [ar.x0, my], L: [ar.x1 + 1, my] };
+    for (const [lado, [px, py]] of Object.entries(pontos)) {
+      const [dx, dy] = LADOS[lado], borda = tela(px, py), fora = tela(px + dx * 1.2, py + dy * 1.2);
+      let ang = Math.atan2(fora[1] - borda[1], fora[0] - borda[0]); const dist = Math.hypot(fora[0] - borda[0], fora[1] - borda[1]);
+      const k = Math.max(46, Math.min(80, dist)) / (dist || 1);
+      const x = Math.max(40, Math.min(W - 40, borda[0] + (fora[0] - borda[0]) * k)), y = Math.max(90, Math.min(H - 40, borda[1] + (fora[1] - borda[1]) * k));
+      const el = setasEl.querySelector(`[data-lado="${lado}"]`); el.style.left = x + 'px'; el.style.top = y + 'px';
+      el.querySelector('i').style.transform = `rotate(${ang}rad)`; void c;
+    }
+  }
 
   // ------------------------------------------------ começo
-  escolherFerr(S.ferr); ed.querySelector(`[data-p="${S.pincel}"]`).classList.add('on');
+  escolherFerr(S.ferr);
   desenharCats(); desenharPecas(); botoesHist(); desenharAba(); notaTopo();
   medir();
   // pequena dica na primeira vez

@@ -35,12 +35,23 @@ await p.click('[data-a=desfazer]'); await p.waitForTimeout(400);
 assert.equal(await p.evaluate(() => document.querySelector('[data-ind=educacao] b').textContent), '0%');
 await p.click('[data-a=refazer]'); await p.waitForTimeout(400);
 assert.equal(await p.evaluate(() => document.querySelector('[data-ind=educacao] b').textContent), '100%');
-// crescer o terreno
-await p.click('[data-a=crescer]'); await p.waitForTimeout(400);
-assert.equal(await num('quadradinhos'), 196, 'cresceu para 14x14');
-// cortar um canto
-await p.click('.ed-f[data-f=cortar]'); a = await cel(-1, -1); await p.mouse.click(a[0], a[1]); await p.waitForTimeout(300);
-assert.equal(await num('quadradinhos'), 195, 'cortou 1');
+// terreno: seta para a direita (＋) no terreno todo -> 12 quadradinhos a mais
+await p.click('.ed-f[data-f=terreno]'); await p.waitForSelector('.ed-setas:not(.esconde)');
+await p.click('[data-seta=L][data-op=mais]'); await p.waitForTimeout(300);
+await p.click('[data-terreno=pronto]'); await p.click('[data-aba=termo]');
+assert.equal(await num('quadradinhos'), 156, 'aumentou para a direita');
+// L: escolhe só a parte de baixo (x 0..3, y 11) e aumenta para baixo -> +4
+await p.click('.ed-f[data-f=terreno]');
+let ini = await cel(0, 11), fim = await cel(3, 11); await p.mouse.move(ini[0], ini[1]); await p.mouse.down(); await p.mouse.move(fim[0], fim[1], { steps: 6 }); await p.mouse.up();
+await p.click('[data-seta=S][data-op=mais]'); await p.waitForTimeout(300);
+assert.equal(await p.evaluate(() => [window.__chao(0, 12), window.__chao(3, 12), window.__chao(4, 12)].join(',')), 'grama,grama,', 'fez um L');
+// diminuir: terreno todo, seta da direita (－)
+await p.click('[data-terreno=todo]'); await p.click('[data-seta=L][data-op=menos]'); await p.waitForTimeout(300);
+await p.click('[data-terreno=pronto]'); await p.click('[data-aba=termo]');
+assert.equal(await num('quadradinhos'), 147, 'diminuiu (13 linhas perderam a ponta)');
+// apagar no chão pintado volta a ser grama
+await p.click('.ed-f[data-f=apagar]'); const r5 = await cel(7, 5); await p.mouse.click(r5[0], r5[1]); await p.waitForTimeout(200);
+assert.equal(await p.evaluate(() => window.__chao(7, 5)), 'grama', 'apagar volta a rua para grama');
 // mover uma casa (ferramenta mão): arrasta a casa de (0,4) para (0,8)
 await p.click('.ed-f[data-f=mao]'); a = await cel(0, 4); const d = await cel(0, 8);
 await p.mouse.move(a[0], a[1] - 8); await p.mouse.down(); await p.mouse.move(d[0], d[1] - 8, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(400);

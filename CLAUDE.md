@@ -35,10 +35,34 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Passeio: velocidade com aceleração/freio, pulo andando (segurar = pula de novo), botões por pointerdown (multitoque), olhar suave com o dedo.
 - Matemática: `htmlMatematica()` em matematica.js: ideia → passos → resultado → prova real; desafios com resposta.
 
+## Rodada 5 (17-18/11): editor simplificado
+- Ferramentas agora são só 4: ✏️ Colocar, ✋ Mover, 🧽 Apagar, 📐 Terreno. Tirados: tesoura (Cortar), Aumentar, Balde, bolinhas de tamanho do pincel e botão Crescer.
+- Colocar com chão (grama, rua…): tocar pinta 1 quadradinho; arrastar pinta vários. Apagar: tira a peça; no chão pintado, volta a ser grama.
+- 📐 Terreno: setas ➜＋ (aumentar) e － (diminuir) em volta do terreno (`mudarTerreno` em editor.js). Arrastar no mapa escolhe uma parte (azul) para fazer L. Painel na doca com medidas em m² e botões "Terreno todo", "Crescer em volta", "Pronto".
+- Pinça (zoom) LIGADA no mapa do editor: dois dedos (pointer events), trackpad (wheel com ctrlKey) e Safari do Mac (gesturechange). No resto do app a pinça continua bloqueada (protecao.js). No toque, a ação espera 110 ms para não colocar peça sem querer quando é pinça.
+- Exposição: botões do cartão não cortam mais.
+- Service worker corrigido (18/11): nunca entrega resposta redirecionada (o Cloudflare redireciona /index.html → /; o Safari dava "Response served by service worker has redirections"). Quem tinha a versão quebrada precisou limpar os dados do site uma vez.
+- Testes novos: `node test/pinca.mjs` (iPad), `node test/service-worker.mjs`; `test/interacoes.mjs` testa as setas do terreno e o L.
+
+## PENDENTE (próxima sessão começa aqui)
+1. Rodar todos os testes (lista em "Testes"), tirar fotos do editor novo (modo Terreno no computador, iPad e celular) e mandar para o Victor.
+2. Commitar e publicar a Rodada 5 (branch de trabalho **e** `main`) e acompanhar o build do Cloudflare até "success" (`gh api repos/victorcruvinel/bairroideal/commits/<sha>/check-runs`).
+3. Conferir com o Victor no iPad: pinça no mapa, setas do terreno, fazer um L.
+4. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev; ele pode querer trocar.
+
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).
 - Cloudflare Builds (17/11): o painel usa `npx wrangler preview` (precisa de wrangler novo; fixado 4.164.0). Produção: branch `main`, comando `npx wrangler deploy`.
 - Branch de trabalho: `claude/bairro-ideal-mockup-app-6j87sk`. **Publicar sempre também na `main`** (autorizado pelo Victor em 17/11; o Cloudflare publica a partir da `main`).
 
 ## Testes
-`npm test` (Node puro) · `node test/interacoes.mjs` e `node test/login.mjs` (Playwright; o primeiro precisa de `node test/servidor.mjs 8090`).
+- `npm test` (Node puro: Codigo.gs com Google falso, Worker, termômetro, matemática, CSS).
+- Playwright (Chromium já instalado no ambiente; use `PW=$(npm root -g)/playwright`). Precisam de `node test/servidor.mjs 8090` rodando: `interacoes.mjs`, `passeio-toque.mjs`, `pinca.mjs`.
+- Sobem o próprio servidor: `login.mjs` (8091, com planilha falsa), `atualizar-instalar.mjs` (8092), `service-worker.mjs` (8093).
+- Rodar SEMPRE antes de publicar.
+
+## Como começar uma sessão nova (para não trabalhar em versão velha)
+1. `git fetch origin` e trabalhar em cima de `origin/main` (é a versão publicada e mais nova). Se o branch de trabalho estiver atrás, `git merge origin/main`.
+2. Publicar: push no branch de trabalho **e** `git push origin HEAD:main`. Conferir o build do Cloudflare.
+3. Site: https://bairroideal.victorcruvinel.dev · Repositório: victorcruvinel/bairroideal · Painel do Cloudflare: Workers & Pages → bairroideal (produção = `main`, deploy = `npx wrangler deploy`).
+4. Mandar fotos (prints) de tudo que mudar. Falar português simples.

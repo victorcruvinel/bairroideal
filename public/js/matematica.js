@@ -118,7 +118,7 @@ export function htmlMatematica(M, a) {
   // desafios para a aula
   const ds = [];
   ds.push([`A escola atende as casas até 10 quadradinhos (100 m) de distância. Qual é a área desse círculo?`, `A = π × r² = 3,14 × 100² ≈ <b>31.416 m²</b> (o raio é 100 m).`]);
-  if (ret) { const nova = (M.cols + 2) * (M.lins + 2); ds.push([`Se apertarmos o botão “Crescer” (1 quadradinho a mais em cada lado), quantos m² o terreno ganha?`, `Fica ${M.cols + 2} × ${M.lins + 2} = ${f0(nova)} quadradinhos. Ganha ${f0(nova)} − ${f0(M.n)} = ${f0(nova - M.n)} quadradinhos × 100 = <b>${f0((nova - M.n) * 100)} m²</b>.`]); }
+  if (ret) { const nova = (M.cols + 2) * (M.lins + 2); ds.push([`Se usarmos “⤢ Crescer em volta” no 📐 Terreno (1 quadradinho a mais em cada lado), quantos m² o terreno ganha?`, `Fica ${M.cols + 2} × ${M.lins + 2} = ${f0(nova)} quadradinhos. Ganha ${f0(nova)} − ${f0(M.n)} = ${f0(nova - M.n)} quadradinhos × 100 = <b>${f0((nova - M.n) * 100)} m²</b>.`]); }
   if (M.arvores) ds.push([`Se cada árvore dá sombra em 1 quadradinho, que porcentagem do terreno fica na sombra?`, `${M.arvores} ÷ ${M.n} × 100 ≈ <b>${fmt(M.arvores / M.n * 100, 1)}%</b>.`]);
   if (M.moradores) ds.push([`Se cada morador produz 1 kg de lixo por dia, quantos kg o bairro produz em uma semana?`, `${f0(M.moradores)} × 1 kg × 7 dias = <b>${f0(M.moradores * 7)} kg</b> (≈ ${fmt(M.moradores * 7 / 1000, 1)} toneladas).`]);
   out.push(`<div class="lousa lousa--desafio"><h4>🎲 Desafios para a turma</h4><p class="ideia">Perguntas feitas com os números desta maquete. Toque para ver a resposta.</p>
