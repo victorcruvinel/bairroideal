@@ -81,19 +81,20 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Maquetes dela aparecem para os outros com `dono: 'equipe'` e `donoNome: 'Equipe Bairro Ideal'` (visitante: vazio). São **da equipe**: entram em "Minhas maquetes" de quem entra (`minhaOuEquipe` em dados.js) e qualquer pessoa da conta pode editar/apagar (servidor libera `ehDev_(r.dono)`).
 - `eu` devolve `dev: true` para ela; a tela Pessoas mostra o aviso "Sua conta é invisível".
 - Convite com 2 cartões: 🎨 Usuário(a) (faz tudo nas maquetes, não cria contas) e ⭐ Administrador(a) (também convida/cria contas).
-- **Precisa atualizar o Apps Script** (colar o Codigo.gs novo e publicar nova versão, ver README "Quando mudar o Codigo.gs"); sem isso a conta continua aparecendo.
+- Apps Script atualizado pelo Victor em 18/11 (Codigo.gs da Rodada 11 colado + nova versão implantada).
 
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 11. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos).
-0. **Victor precisa colar o Codigo.gs novo no Apps Script e publicar nova versão** (Rodada 11: conta invisível). Conferir com ele.
-1. Conferir o build do Cloudflare do último commit (a rede desta sessão bloqueava o site; pedir ao Victor olhar no painel).
-2. No print do Victor (iPad) a logo ainda era a antiga: conferir se a versão nova chegou (fechar e abrir o app; o ícone instalado pode exigir reinstalar).
-3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
+Última publicação: Rodada 11 (commit 3235b58, na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos).
+1. Conferir com o Victor se o build do Cloudflare de 3235b58 deu "success" (nesta sessão a rede bloqueava o site e não havia ferramenta para ver os checks).
+2. Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
+3. Quando ele convidar a professora: ver se o e-mail chegou sem o nome dele e se ela vê as maquetes de exemplo como "da equipe" e consegue editar.
+4. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
+5. Lembrete: mudanças no `apps-script/Codigo.gs` só valem depois que o Victor cola o código no Apps Script e implanta nova versão (README "Quando mudar o Codigo.gs"). Mandar o arquivo para ele (também como .txt).
 
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).
 - Cloudflare Builds (17/11): o painel usa `npx wrangler preview` (precisa de wrangler novo; fixado 4.164.0). Produção: branch `main`, comando `npx wrangler deploy`.
-- Branch de trabalho: `claude/bairro-ideal-mockup-app-6j87sk`. **Publicar sempre também na `main`** (autorizado pelo Victor em 17/11; o Cloudflare publica a partir da `main`).
+- Branch de trabalho: `claude/sleepy-maxwell-6v3ph9` (antes: `claude/bairro-ideal-mockup-app-6j87sk`). **Publicar sempre também na `main`** (autorizado pelo Victor em 17/11; o Cloudflare publica a partir da `main`).
 
 ## Testes
 - `npm test` (Node puro: Codigo.gs com Google falso, Worker, termômetro, matemática, CSS).
