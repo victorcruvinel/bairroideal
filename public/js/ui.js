@@ -12,6 +12,7 @@ export function aviso(texto, tipo = 'ok', ms = 2600) {
   const a = el(`<div class="aviso aviso--${tipo}">${texto}</div>`); avisos.append(a);
   while (avisos.children.length > 3) avisos.firstElementChild.remove();
   setTimeout(() => { a.classList.add('sai'); setTimeout(() => a.remove(), 400); }, ms);
+  return a;
 }
 
 // balãozinho que sobe de um ponto da tela (+5 natureza)

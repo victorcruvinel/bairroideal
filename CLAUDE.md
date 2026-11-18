@@ -48,11 +48,20 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Carregando novo (`carregando()` em ui.js): mini-maquete 3×3 desenhada com o motor de verdade (lapis + OBJETOS), chão sobe, peças caem quicando, 3 cenas que se revezam; pontinhos verde/sol/coral; dicas atualizadas (sem balde).
 - 📐 Terreno em todos os aparelhos: ao entrar/sair o mapa se reenquadra deixando folga para as setas (`areaUtil` com margem); até 1180 px de largura o painel lateral some no modo Terreno (mapa maior no iPad); a câmera se afasta sozinha se o terreno crescer para fora (`seguirTerreno`). No celular: dica curta, sem botões noite/régua/x-y no Terreno. iPhone SE: botões da direita menores.
 
+## Rodada 7 (18/11): ícone, editor com Tocar, celular
+- Ícone novo (`img/icone.svg`, 512): céu, sol, nuvem, ilha centralizada com rua, casinha e árvores. PNGs gerados por `node test/gerar-imagens.mjs` (192/512 arredondados, 180 reto para o iPhone, maskable com desenho menor). A logo do site usa o mesmo SVG.
+- Editor abre no **👆 Tocar** (sem peça escolhida): tocar seleciona, arrastar anda, pinça aproxima. Ferramentas: Tocar, Colocar, Mover, Apagar, Terreno (teclas 1-5). Sair do Colocar tira a peça escolhida. Colocar sem peça: aviso "Escolha uma peça".
+- Menu **👁️ Ver** (botão na coluna da direita) com chaves: Grade (`opt.grade` no motor; tecla G; guardada em `bi:editor`), Régua, Plano cartesiano, Noite. Bolinha mostra quantas estão ligadas.
+- Janelinha da peça com nomes: Girar, Cor, Mover, Usar, Apagar, Fechar. Nunca sobe por cima da barra de cima.
+- Celular (≤760): barra de ferramentas embaixo (como app); gaveta de peças só no Colocar/Terreno; escolher peça encolhe a gaveta (`doca-mini`, botão "trocar ▴"); peça tocada vira cartão embaixo; avisos aparecem em cima; uma dica por vez.
+- `protecao.js`: o bloqueio de toque duplo não vale mais para botões/canvas (engolia o 2º toque rápido). Botões com `touch-action: manipulation`.
+- `.ed { overflow: clip }`: o editor não rola mais (no iPad o painel escondido aparecia).
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 6. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
-1. Conferir o build do Cloudflare do último commit (nesta sessão a rede bloqueou o site e não havia ferramenta para ver os checks; pedir ao Victor olhar no painel).
-2. Conferir com o Victor no iPad: pinça no mapa, setas do terreno, fazer um L, carregando novo. Ajustar o que ele pedir.
-3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev; ele pode querer trocar.
+Última publicação: Rodada 7. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
+1. Conferir o build do Cloudflare do último commit (a rede desta sessão bloqueava o site; pedir ao Victor olhar no painel).
+2. Victor testar no iPhone/iPad: ícone instalado (talvez precise remover e instalar de novo para o ícone mudar), Tocar, gaveta de peças, menu Ver.
+3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
 
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).

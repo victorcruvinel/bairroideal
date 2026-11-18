@@ -17,9 +17,15 @@ assert.ok(z1 > z0 * 1.8, `zoom aumentou (${z0.toFixed(2)} -> ${z1.toFixed(2)})`)
 // fechar a pinça diminui
 await toque('touchStart', [[cx - 160, cy], [cx + 160, cy]]); for (let i = 1; i <= 8; i++) { await toque('touchMove', [[cx - 160 + i * 15, cy], [cx + 160 - i * 15, cy]]); await p.waitForTimeout(16); } await toque('touchEnd', []);
 const z2 = await p.evaluate(() => window.__zoom()); assert.ok(z2 < z1, 'zoom diminuiu');
-// um dedo só ainda coloca peça
-const t = await p.evaluate(() => { for (let y = 6; y < 17; y++) for (let x = 0; x < 20; x++) if (window.__chao(x, y) === 'grama' && !window.__objEm(x, y)) { const c = window.__celTela(x, y); if (c[0] > 120 && c[0] < 900 && c[1] > 150 && c[1] < 560) return c; } return null; }); await p.touchscreen.tap(t[0], t[1]); await p.waitForTimeout(400);
-assert.equal(await p.evaluate(() => window.__pecas()), n0 + 1, 'um toque coloca a peça');
+// ao abrir o editor vem o modo Tocar: tocar no mapa NÃO coloca nada
+const t = await p.evaluate(() => { for (let y = 6; y < 17; y++) for (let x = 0; x < 20; x++) if (window.__chao(x, y) === 'grama' && !window.__objEm(x, y)) { const c = window.__celTela(x, y); if (c[0] > 120 && c[0] < 900 && c[1] > 150 && c[1] < 560) return c; } return null; });
+assert.ok(await p.evaluate(() => document.querySelector('.ed').classList.contains('ferr-tocar')), 'abre no modo Tocar');
+await p.touchscreen.tap(t[0], t[1]); await p.waitForTimeout(400);
+assert.equal(await p.evaluate(() => window.__pecas()), n0, 'no modo Tocar o toque não coloca peça');
+// escolhendo uma peça (categoria e peça com toques rápidos), um dedo só coloca
+await p.tap('[data-cat=casas]'); await p.tap('.pc[data-id=casa]'); await p.waitForTimeout(200);
+await p.touchscreen.tap(t[0], t[1]); await p.waitForTimeout(400);
+assert.equal(await p.evaluate(() => window.__pecas()), n0 + 1, 'com peça escolhida, um toque coloca a peça');
 if (FOTOS) { await p.tap('.ed-f[data-f=terreno]'); await p.waitForTimeout(600); await p.screenshot({ path: FOTOS + '/51-terreno-ipad.png' }); }
 assert.deepEqual(erros, []); console.log(`✔ pinça no iPad: zoom ${z0.toFixed(2)} → ${z1.toFixed(2)} → ${z2.toFixed(2)}, sem colocar peça sem querer`);
 await b.close();

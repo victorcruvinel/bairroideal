@@ -58,8 +58,15 @@ await p.mouse.move(a[0], a[1] - 8); await p.mouse.down(); await p.mouse.move(d[0
 const posCasa = await p.evaluate(() => window.__objEm && window.__objEm(0, 8));
 assert.equal(posCasa, 'casa', 'casa foi movida');
 // planta + noite + girar não quebram
-await p.click('.ed-modos [data-modo=planta]'); await p.click('[data-a=noite]'); await p.click('[data-a=girar]'); await p.waitForTimeout(300);
-await p.click('.ed-modos [data-modo="3d"]'); await p.click('[data-a=noite]');
+await p.click('.ed-modos [data-modo=planta]'); await p.click('[data-a=ver]'); await p.click('.ed-ver [data-a=noite]'); await p.click('.ed-ver [data-a=grade]'); await p.click('[data-a=girar]'); await p.waitForTimeout(300);
+assert.equal(await p.textContent('.ed-ver-n'), '2', 'menu Ver mostra 2 coisas ligadas');
+await p.click('.ed-modos [data-modo="3d"]'); await p.click('[data-a=ver]'); await p.click('.ed-ver [data-a=noite]'); await p.click('.ed-ver [data-a=grade]');
+assert.ok(await p.evaluate(() => document.querySelector('.ed-ver-n').classList.contains('esconde')), 'tudo desligado');
+for (let i = 0; i < 3; i++) await p.click('[data-a=girar]'); // volta a vista para a posição normal
+// Tocar: clicar numa casa abre a janelinha e não coloca nada
+await p.click('.ed-f[data-f=tocar]'); const n9 = await p.evaluate(() => window.__pecas()); a = await cel(1, 4); await p.mouse.click(a[0], a[1] - 8); await p.waitForTimeout(300);
+assert.equal(await p.evaluate(() => window.__pecas()), n9, 'Tocar não coloca peça');
+assert.ok(await p.isVisible('.ed-sel'), 'janelinha da peça abriu');
 if (FOTOS) await p.screenshot({ path: FOTOS + '/09-teste-montado.png' });
 // salvou sozinho
 await p.waitForTimeout(1800);

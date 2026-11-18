@@ -137,6 +137,7 @@ export function lapis(ctx, cam, W, H, opt = {}) {
   return G;
 }
 
+const noiteOu = (opt, dia, noite) => (opt.noite ? noite : dia);
 // ---------- desenho completo
 // opt: { noite, planta, fantasma:{t|chao, x, y, r, c, ok}, selecionado: obj, marcas:[{x,y,cor}], fundo }
 export function desenhar(ctx, ix, cam, W, H, opt = {}) {
@@ -156,6 +157,12 @@ export function desenhar(ctx, ix, cam, W, H, opt = {}) {
       if (!viz(X, Y + 1)) G.poly([[X, Y + 1, 0], [X + 1, Y + 1, 0], [X + 1, Y + 1, -12], [X, Y + 1, -12]], sombra(borda, -.02));
       if (!viz(X + 1, Y)) G.poly([[X + 1, Y, 0], [X + 1, Y + 1, 0], [X + 1, Y + 1, -12], [X + 1, Y, -12]], sombra(borda, -.25));
       desenharChao(G, X, Y, tl.t, tl.x, tl.y, viz, s);
+    }
+    // grade: risquinhos brancos em volta de cada quadradinho (opt.grade)
+    if (opt.grade && s > .18) {
+      ctx.save(); ctx.strokeStyle = noiteOu(opt, 'rgba(255,255,255,.55)', 'rgba(170,190,255,.35)'); ctx.lineWidth = Math.max(.6, 1.1 * s); ctx.beginPath();
+      for (const tl of tiles) { if (!dentro(tl.X, tl.Y)) continue; const a = G.P(tl.X, tl.Y), b = G.P(tl.X + 1, tl.Y), c = G.P(tl.X + 1, tl.Y + 1), d = G.P(tl.X, tl.Y + 1); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.closePath(); }
+      ctx.stroke(); ctx.restore();
     }
     // marcas no chão (pincel, área selecionada)
     for (const mk of opt.marcas || []) {
@@ -208,7 +215,7 @@ function desenharPlanta(G, ix, tiles, viz, dentro, opt) {
       } else if (tl.t === 'esgoto') { ctx.fillStyle = G.c('#5d6b2f'); ctx.fillRect(p[0] + T * .35, p[1], T * .3, T); }
     }
   }
-  if (T > 6) { ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = 1; ctx.beginPath(); for (const tl of tiles) { if (!dentro(tl.X, tl.Y)) continue; const p = G.P(tl.X, tl.Y); ctx.rect(p[0], p[1], T, T); } ctx.stroke(); }
+  if (T > 6) { ctx.strokeStyle = opt.grade ? 'rgba(20,81,58,.32)' : 'rgba(0,0,0,.06)'; ctx.lineWidth = opt.grade ? 1.2 : 1; ctx.beginPath(); for (const tl of tiles) { if (!dentro(tl.X, tl.Y)) continue; const p = G.P(tl.X, tl.Y); ctx.rect(p[0], p[1], T, T); } ctx.stroke(); }
   for (const mk of opt.marcas || []) { const [X, Y] = celGirada(G.rot, mk.x, mk.y); const p = G.P(X, Y); ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(p[0], p[1], T, T); }
   const objs = [...(ix.m.objs || [])]; if (opt.fantasma && opt.fantasma.t) objs.push({ ...opt.fantasma, _f: true });
   for (const o of objs) {

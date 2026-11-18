@@ -3,10 +3,17 @@ import { createRequire } from 'node:module'; import fs from 'node:fs';
 const { chromium } = createRequire(import.meta.url)(process.env.PW || 'playwright');
 const b = await chromium.launch(); const p = await b.newPage();
 const svg = fs.readFileSync(new URL('../public/img/icone.svg', import.meta.url), 'utf8');
-for (const [n, s, pad] of [['icone-192', 192, 0], ['icone-512', 512, 0], ['icone-180', 180, 0], ['icone-maskable', 512, 70]]) {
+// cantos: 'redondo' (192/512 e favicon), 'reto' (iPhone arredonda sozinho), 'mascara' (Android recorta: desenho menor no meio)
+const variante = (tipo) => {
+  if (tipo === 'redondo') return svg;
+  let t = svg.replace('rx="112"', 'rx="0"');
+  if (tipo === 'mascara') t = t.replace(/(<rect class="fundo"[^>]*\/>)([\s\S]*)(<\/svg>)/, '$1<g transform="translate(46 46) scale(.82)">$2</g>$3');
+  return t;
+};
+for (const [n, s, tipo] of [['icone-192', 192, 'redondo'], ['icone-512', 512, 'redondo'], ['icone-180', 180, 'reto'], ['icone-maskable', 512, 'mascara']]) {
   await p.setViewportSize({ width: s, height: s });
-  await p.setContent(`<body style="margin:0;background:#1f6f50"><div style="width:${s}px;height:${s}px;display:grid;place-items:center">${svg.replace('<svg ', `<svg width="${s - pad * 2}" height="${s - pad * 2}" `).replace('rx="16"', pad ? 'rx="0"' : 'rx="16"')}</div></body>`);
-  await p.screenshot({ path: `public/img/${n}.png`, omitBackground: !pad });
+  await p.setContent(`<body style="margin:0;background:transparent">${variante(tipo).replace('<svg ', `<svg width="${s}" height="${s}" style="display:block" `)}</body>`);
+  await p.screenshot({ path: `public/img/${n}.png`, omitBackground: tipo === 'redondo' });
 }
 await p.setViewportSize({ width: 1200, height: 630 });
 await p.goto('http://localhost:8090/vazio'); await p.waitForTimeout(300);

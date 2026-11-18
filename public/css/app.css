@@ -623,3 +623,68 @@ html[data-copiar="sim"] :is(.texto, .lousa, .hist-txt, .probs, .dicas, .cmp-tab)
 @media (max-width: 760px) { .grade-m { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); } }
 /* celular baixinho (iPhone SE): botões da direita menores para não encostar na barra de ferramentas */
 @media (max-width: 760px) and (max-height: 720px) { .ed-vista { gap: 4px; } .ed-vista .redondo { width: 36px; height: 36px; font-size: 15px; } }
+
+/* =================================================================== EDITOR · Rodada 7 (Tocar, menu Ver, celular) */
+.ed-bt-ver { position: relative; }
+.ed-bt-ver.on { background: var(--sol); border-color: #e9ad12; box-shadow: 0 3px 0 var(--sol2); }
+.ed-ver-n { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--verde); color: #fff; font-size: 11px; font-weight: 900; display: grid; place-items: center; border: 2px solid #fff; padding: 0 4px; }
+.ed-ver { position: absolute; z-index: 8; right: 72px; top: calc(74px + var(--seguro-t)); width: 290px; background: #fff; border: 2px solid var(--linha); border-radius: 22px; padding: 10px; box-shadow: 0 6px 0 rgba(43, 42, 51, .06), 0 24px 50px -18px rgba(43, 42, 51, .45); display: grid; gap: 4px; transform-origin: top right; animation: verAbre .18s cubic-bezier(.3, 1.4, .5, 1); transition: right .3s; }
+.com-painel .ed-ver { right: 418px; }
+@keyframes verAbre { from { opacity: 0; transform: scale(.92); } }
+.ed-ver h4 { font-size: 15px; margin: 2px 6px 6px; color: var(--tinta2); }
+.ed-ver-i { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px; border-radius: 14px; width: 100%; }
+.ed-ver-i:hover { background: var(--papel); }
+.ed-ver-e { width: 38px; height: 38px; flex: none; border-radius: 12px; background: #f4f1ea; display: grid; place-items: center; font-size: 19px; }
+.ed-ver-i.on .ed-ver-e { background: #fff3c4; }
+.ed-ver-t { flex: 1; display: grid; line-height: 1.2; } .ed-ver-t b { font-size: 15px; } .ed-ver-t small { font-size: 12px; color: var(--tinta2); font-weight: 700; }
+.chave { width: 44px; height: 26px; flex: none; border-radius: 13px; background: #ddd5c4; position: relative; transition: background .2s; }
+.chave::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, .2); transition: transform .2s cubic-bezier(.3, 1.4, .5, 1); }
+.ed-ver-i.on .chave { background: var(--verde); } .ed-ver-i.on .chave::after { transform: translateX(18px); }
+
+/* janelinha da peça tocada: nome com miniatura e botões com nome */
+.ed-sel { padding: 6px 6px 6px 8px; gap: 6px; }
+.ed-sel-n { display: flex; align-items: center; gap: 6px; padding: 0 4px !important; }
+.ed-sel-n img { width: 30px; height: 30px; background: rgba(255, 255, 255, .12); border-radius: 9px; }
+.ed-sel-bts { display: flex; gap: 2px; }
+.ed-sel button { width: auto; min-width: 50px; height: auto; padding: 5px 6px 4px; display: grid; justify-items: center; gap: 1px; }
+.ed-sel button span { font-size: 18px; line-height: 1.1; } .ed-sel button small { font-size: 10.5px; font-weight: 800; opacity: .85; }
+
+/* peça escolhida na doca */
+.ed-opc-n { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 2px; border-radius: 12px; background: #f4f1ea; }
+.ed-opc-n img { width: 32px; height: 32px; } .ed-opc-n small { display: none; font-weight: 800; color: var(--verde); font-size: 12px; }
+.ed-doca-enc { display: none; }
+
+@media (max-width: 760px) {
+  /* barra de ferramentas embaixo, como num aplicativo */
+  .ed-ferr { top: auto; left: 0; right: 0; bottom: 0; border-radius: 22px 22px 0 0; padding: 6px 6px calc(6px + var(--seguro-b)); gap: 4px; overflow: visible; box-shadow: 0 -6px 24px rgba(0, 0, 0, .18); }
+  .ed-f { flex: 1; min-width: 0; padding: 7px 2px 6px; border-radius: 14px; gap: 2px; } .ed-f span { font-size: 22px; } .ed-f small { font-size: 11px; }
+  .ed-doca { bottom: calc(var(--abas, 70px) + 8px); left: 8px; right: 8px; }
+  .ed:not(.ferr-colocar):not(.modo-terreno) .ed-doca { display: none; }
+  .tem-peca .ed-doca-enc { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: #f4f1ea; font-size: 18px; font-weight: 900; color: var(--tinta2); }
+  .doca-mini .ed-doca-top, .doca-mini .ed-pecas { display: none; }
+  .doca-mini .ed-opc:not(:empty) { margin-top: 0; }
+  .ed-opc-n { display: none; } .doca-mini .ed-opc-n { display: inline-flex; } .doca-mini .ed-opc-n small { display: inline; }
+  .doca-mini .ed-opc { justify-content: space-between; }
+  /* peça tocada: cartão embaixo, com botões grandes */
+  .ed-sel { left: 8px !important; right: 8px; top: auto !important; bottom: calc(var(--abas, 70px) + var(--doca, 0px) + 14px); transform: none; flex-direction: column; align-items: stretch; white-space: normal; border-radius: 20px; padding: 10px; animation: selSobe .2s cubic-bezier(.3, 1.4, .5, 1); }
+  .ed:not(.ferr-colocar):not(.modo-terreno) .ed-sel { bottom: calc(var(--abas, 70px) + 10px); }
+  .ed-sel::after { display: none; }
+  .ed-sel-n { font-size: 15px; } .ed-sel-bts { gap: 6px; } .ed-sel-bts button { flex: 1; min-width: 0; padding: 8px 2px 6px; background: rgba(255, 255, 255, .1); border-radius: 13px; } .ed-sel button span { font-size: 21px; } .ed-sel button small { font-size: 11px; }
+  .ed-ver { right: 58px; top: calc(116px + var(--seguro-t)); width: min(300px, calc(100% - 72px)); }
+  .com-painel .ed-ver { right: 58px; }
+}
+@keyframes selSobe { from { opacity: 0; transform: translateY(14px); } }
+/* toques rápidos seguidos não viram "toque duplo de zoom" (o celular não engole o segundo toque) */
+button, a, .pc, .ed-f, input, label { touch-action: manipulation; }
+@media (max-width: 760px) {
+  .com-sel .ed-doca { display: none !important; } .com-sel .ed-sel { bottom: calc(var(--abas, 70px) + 10px); }
+  body.no-editor .avisos { top: calc(112px + var(--seguro-t)); bottom: auto; }
+}
+@media (max-width: 760px) {
+  .doca-mini .ed-opc-n { display: grid; grid-template-columns: 34px auto; column-gap: 6px; text-align: left; max-width: 150px; padding: 3px 10px 3px 3px; }
+  .doca-mini .ed-opc-n img { grid-row: span 2; }
+  .doca-mini .ed-opc-n b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.15; }
+  .doca-mini .ed-opc-n small { line-height: 1.1; }
+}
+/* o editor nunca rola (o painel escondido fica fora da tela e não pode "puxar" a tela para baixo) */
+.ed { overflow: clip; }

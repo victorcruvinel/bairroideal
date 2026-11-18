@@ -26,4 +26,7 @@ document.addEventListener('touchmove', (e) => { if (e.touches && e.touches.lengt
 document.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 // toque duplo não dá zoom
 let ultimoToque = 0;
-document.addEventListener('touchend', (e) => { const t = Date.now(); if (t - ultimoToque < 320 && !digitavel(e.target)) e.preventDefault(); ultimoToque = t; }, { passive: false });
+// toque duplo dá zoom no Safari: bloqueia só fora de botões e do mapa (botões já têm touch-action: manipulation e
+// precisam aceitar toques rápidos seguidos, por exemplo categoria e depois peça)
+const tocavel = (el) => el && el.closest && el.closest('button, a, label, select, [role=button], .pc, canvas');
+document.addEventListener('touchend', (e) => { const t = Date.now(); if (t - ultimoToque < 320 && !digitavel(e.target) && !tocavel(e.target)) e.preventDefault(); ultimoToque = t; }, { passive: false });

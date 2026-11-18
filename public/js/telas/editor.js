@@ -9,12 +9,16 @@ import { analisar, dicas, INDICADORES } from '../termometro.js';
 import { chipTipo, TIPOS, notaTxt, corNota, prepararParaSalvar } from './comum.js';
 import { historiaAutomatica } from './historia.js';
 
+// [id, emoji, nome, dica comprida (computador), dica curta (celular)]
 const FERRAMENTAS = [
-  ['colocar', '✏️', 'Colocar', 'Escolha uma peça embaixo e toque no mapa. Chão (grama, rua…) pinta o quadradinho tocado; arraste para pintar vários'],
-  ['mao', '✋', 'Mover', 'Arraste uma peça para mudar de lugar, ou arraste o chão para andar pelo mapa'],
-  ['apagar', '🧽', 'Apagar', 'Toque numa peça para tirar. Tocando no chão pintado, ele volta a ser grama'],
-  ['terreno', '📐', 'Terreno', 'Use as setas para aumentar (＋) ou diminuir (－) o terreno. Arraste no mapa para escolher só uma parte e fazer um L'],
+  ['tocar', '👆', 'Tocar', 'Toque numa peça para ver o que dá para fazer com ela. Arraste para andar pelo mapa; dois dedos ou a rodinha aproximam', '👆 Toque numa peça · arraste para andar'],
+  ['colocar', '✏️', 'Colocar', 'Escolha uma peça embaixo e toque no mapa. Chão (grama, rua…) pinta o quadradinho tocado; arraste para pintar vários', '✏️ Escolha uma peça e toque no mapa'],
+  ['mao', '✋', 'Mover', 'Arraste uma peça para mudar de lugar, ou arraste o chão para andar pelo mapa', '✋ Arraste uma peça para mudar de lugar'],
+  ['apagar', '🧽', 'Apagar', 'Toque numa peça para tirar. Tocando no chão pintado, ele volta a ser grama', '🧽 Toque numa peça para tirar'],
+  ['terreno', '📐', 'Terreno', 'Use as setas para aumentar (＋) ou diminuir (－) o terreno. Arraste no mapa para escolher só uma parte e fazer um L', '📐 Use as setas ＋ e －'],
 ];
+// o que dá para mostrar ou esconder no mapa (menu 👁️ Ver)
+const CAMADAS = [['grade', '▦', 'Grade', 'Linhas em volta de cada quadradinho'], ['regua', '📏', 'Régua', 'Mede a distância entre dois pontos'], ['eixos', '📊', 'Plano cartesiano', 'Eixos x e y com os números'], ['noite', '🌙', 'Noite', 'Mostra onde tem iluminação']];
 const sem = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export async function montar(app, [id]) {
@@ -25,7 +29,7 @@ export async function montar(app, [id]) {
   let pref = {}; try { pref = JSON.parse(localStorage.getItem('bi:editor') || '{}'); } catch { /* */ }
 
   const S = {
-    ferr: edita ? 'colocar' : 'mao', peca: edita ? 'casa' : null, cor: 0, rot: 0, area: null, cat: pref.cat || 'casas', busca: '',
+    ferr: 'tocar', peca: null, grade: !!pref.grade, cor: 0, rot: 0, area: null, cat: pref.cat || 'casas', busca: '',
     planta: false, noite: false, eixos: false, regua: { on: false, a: null, b: null }, sel: null, hover: null, cam: null, painel: pref.painel ?? innerWidth > 980, aba: pref.aba || 'termo',
   };
   let ix = indexar(m), sujo = false, quadroPedido = false, analise = analisar(m), desfazer = [], refazer = [], salvarTimer = null, salvando = false, pendente = false;
@@ -56,8 +60,11 @@ export async function montar(app, [id]) {
     <div class="ed-vista">
       <button class="redondo" data-a="girar" title="Girar a vista (Q / E)">↻</button>
       <button class="redondo" data-a="mais" title="Aproximar">＋</button><button class="redondo" data-a="menos" title="Afastar">－</button>
-      <button class="redondo" data-a="tudo" title="Ver o mapa inteiro">⌖</button><button class="redondo" data-a="noite" title="Dia / noite (N)">🌙</button>
-      <button class="redondo" data-a="regua" title="Régua: meça a distância entre dois pontos (M)">📏</button><button class="redondo ed-xy" data-a="eixos" title="Plano cartesiano (eixos x e y)"><i>x</i><i>y</i></button>
+      <button class="redondo" data-a="tudo" title="Ver o mapa inteiro">⌖</button>
+      <button class="redondo ed-bt-ver" data-a="ver" title="Mostrar no mapa: grade, régua, plano cartesiano, noite" aria-expanded="false">👁️<b class="ed-ver-n esconde"></b></button>
+    </div>
+    <div class="ed-ver esconde" role="menu" aria-label="Mostrar no mapa"><h4>👁️ Mostrar no mapa</h4>
+      ${CAMADAS.map(([id, e, n, d]) => `<button class="ed-ver-i" data-a="${id}" role="menuitemcheckbox" aria-checked="false"><span class="ed-ver-e">${e}</span><span class="ed-ver-t"><b>${n}</b><small>${d}</small></span><i class="chave"></i></button>`).join('')}
     </div>
     <div class="ed-sel esconde"></div>
     <div class="ed-setas esconde">${[['N', 'para cima no mapa'], ['L', 'para a direita no mapa'], ['S', 'para baixo no mapa'], ['O', 'para a esquerda no mapa']].map(([d, t]) => `<div class="ed-seta" data-lado="${d}"><button class="ed-seta-mais" data-seta="${d}" data-op="mais" title="Aumentar ${t}"><i>➜</i><b>＋</b></button><button class="ed-seta-menos" data-seta="${d}" data-op="menos" title="Diminuir ${t}">－</button></div>`).join('')}</div>
@@ -66,6 +73,7 @@ export async function montar(app, [id]) {
       <div class="ed-doca-top">
         <div class="ed-cats">${CATEGORIAS.map((c) => `<button data-cat="${c.id}"><span style="background:${c.cor}">${c.emoji}</span>${c.nome}</button>`).join('')}</div>
         <label class="ed-busca"><span>🔍</span><input type="search" placeholder="Procurar peça…" aria-label="Procurar peça"></label>
+        <button class="ed-doca-enc" data-a="encolher" title="Esconder as peças">▾</button>
       </div>
       <div class="ed-opc"></div>
       <div class="ed-pecas" role="listbox" aria-label="Peças"></div>
@@ -77,6 +85,7 @@ export async function montar(app, [id]) {
     </aside>
   </div>`);
   app.append(ed);
+  ed.addEventListener('scroll', () => { if (ed.scrollTop || ed.scrollLeft) { ed.scrollTop = 0; ed.scrollLeft = 0; } }); // Safari antigo sem overflow: clip
   const $ = (s) => ed.querySelector(s), cv = $('.ed-mapa'), ctx = cv.getContext('2d');
   let W = 0, H = 0;
 
@@ -92,7 +101,7 @@ export async function montar(app, [id]) {
     const ter = S.ferr === 'terreno' && edita; // no modo Terreno sobra espaço em volta para as setas
     const p = S.painel && innerWidth > 980 && !(ter && innerWidth <= 1180) ? 340 : 0, doca = (edita ? $('.ed-doca').offsetHeight : 0) || 0;
     let a;
-    if (celular()) { const f = edita ? $('.ed-ferr').offsetHeight + 8 : 0; a = { x: 8, y: 104, w: W - 60, h: H - 104 - doca - f - 16 }; }
+    if (celular()) { const f = edita ? $('.ed-ferr').offsetHeight + 8 : 0; a = { x: 8, y: 104, w: W - (ter ? 60 : 16), h: H - 104 - doca - f - 16 }; } // no celular o mapa pode passar por baixo dos botões da direita
     else a = { x: edita ? 86 : 20, y: 70, w: W - p - (edita ? 150 : 90), h: H - doca - 90 };
     if (ter) { const mx = celular() ? 14 : 64, my = celular() ? 44 : 56; a = { x: a.x + mx, y: a.y + my, w: a.w - 2 * mx, h: a.h - 2 * my }; }
     return a;
@@ -117,7 +126,7 @@ export async function montar(app, [id]) {
     if (sujo) { ix = indexar(m); sujo = false; }
     ctx.clearRect(0, 0, W, H);
     if (S.noite) { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0f1733'); g.addColorStop(1, '#27325e'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); estrelas(); }
-    const opt = { noite: S.noite, planta: S.planta, selecionado: S.sel, marcas: marcasPincel() };
+    const opt = { noite: S.noite, planta: S.planta, selecionado: S.sel, marcas: marcasPincel(), grade: S.grade };
     const f = fantasma(); if (f) opt.fantasma = f;
     const r = desenhar(ctx, ix, S.cam, W, H, opt); ultimosDesenhados = r.desenhados;
     if (S.eixos) desenharEixos(); if (S.regua.on) desenharRegua(); posicionarSetas();
@@ -175,7 +184,7 @@ export async function montar(app, [id]) {
       <p class="prova">🚶 <b>A pé pelas quadras</b> (sem cortar caminho): (|Δx| + |Δy|) × 10 = <b>${fmt(r.aPe)} m</b>. A linha reta é sempre o caminho mais curto!</p>
       <small>${r.inclinacao == null ? 'Reta vertical: Δx = 0, então não dá para dividir por Δx.' : `Inclinação: m = Δy ÷ Δx = ${r.dy} ÷ ${r.dx} ≈ ${fmt(r.inclinacao, 2)} · ângulo ≈ ${fmt(r.ang, 1)}°`}</small>`;
   }
-  reguaEl.addEventListener('click', (e) => { if (e.target.closest('[data-r=fechar]')) { S.regua = { on: false, a: null, b: null }; atualizarRegua(); pedir(); } });
+  reguaEl.addEventListener('click', (e) => { if (e.target.closest('[data-r=fechar]')) { S.regua = { on: false, a: null, b: null }; atualizarRegua(); atualizarVer(); pedir(); } });
   function estrelas() { ctx.fillStyle = 'rgba(255,255,255,.75)'; for (let i = 0; i < 70; i++) { const x = (i * 197.3) % W, y = (i * 71.9) % (H * .6); ctx.fillRect(x, y, 1.6, 1.6); } }
   new ResizeObserver(medir).observe(cv);
 
@@ -341,12 +350,13 @@ export async function montar(app, [id]) {
   function acaoInicial(x, y, c) {
     const p = pecaAtual();
     if (S.ferr === 'terreno') { gesto = { tipo: 'area', a: c, ini: [x, y] }; S.area = { x0: c.x, y0: c.y, x1: c.x, y1: c.y }; desenharTerreno(); pedir(); return; }
+    if (S.ferr === 'tocar') { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y], tocar: true }; return; }
     if (S.ferr === 'mao') {
       const o = objetoEm(x, y);
       gesto = o ? { tipo: 'talvez-mover', o, ini: [x, y], c } : { tipo: 'mapa', ultimo: [x, y], ini: [x, y], tocar: true };
       return;
     }
-    if (S.ferr === 'colocar' && (!p)) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y], tocar: true }; return; }
+    if (S.ferr === 'colocar' && (!p)) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y], tocar: true, semPeca: true }; return; }
     comecarMudanca();
     if (S.ferr === 'colocar' && p.tipo === 'obj') { const ok = colocarObjeto(c); gesto = { tipo: 'colocar', ult: c.x + ',' + c.y, ini: [x, y], pos: [x, y], colocou: ok }; if (ok) feedbackLocal(x, y); return; }
     if (S.ferr === 'apagar') { apagarEm(c); gesto = { tipo: 'apagar', ult: c.x + ',' + c.y }; return; }
@@ -383,7 +393,11 @@ export async function montar(app, [id]) {
     if (gesto && gesto.dois) { if (!ponteiros.size) { gesto = null; S.arrastandoMapa = false; } return; }
     if (!gesto) return; const g = gesto; gesto = null; S.arrastandoMapa = false;
     if (g.tipo === 'talvez-mover') selecionar(g.o);
-    else if (g.tipo === 'mapa' && g.tocar) { const [x, y] = pos(e); const o = objetoEm(x, y); if (o) selecionar(o); else { S.sel = null; esconderSel(); } }
+    else if (g.tipo === 'mapa' && g.tocar) {
+      const [x, y] = pos(e); const o = objetoEm(x, y);
+      if (g.semPeca && !o) { aviso('👇 Escolha uma peça primeiro', 'ok', 1800); ed.classList.remove('doca-mini'); medirDoca(); }
+      if (o) selecionar(o); else { S.sel = null; esconderSel(); }
+    }
     else if (g.tipo === 'mover' && S.mover) {
       const f = fantasma(); if (f && f.ok) { S.mover.o.x = f.x; S.mover.o.y = f.y; ix = indexar(m); }
       else aviso('Não cabe aí 🙈', 'erro', 1500);
@@ -409,7 +423,7 @@ export async function montar(app, [id]) {
   let escalaG = 1; const temToque = () => [...tipos.values()].includes('touch');
   cv.addEventListener('gesturestart', (e) => { e.preventDefault(); escalaG = e.scale || 1; });
   cv.addEventListener('gesturechange', (e) => { e.preventDefault(); if (temToque()) return; const r = cv.getBoundingClientRect(); zoom((e.scale || 1) / escalaG, e.clientX - r.left, e.clientY - r.top); escalaG = e.scale || 1; });
-  const cursor = () => (!edita || S.ferr === 'mao' || (S.ferr === 'colocar' && !S.peca) ? 'grab' : 'crosshair');
+  const cursor = () => (!edita || S.ferr === 'tocar' || S.ferr === 'mao' || (S.ferr === 'colocar' && !S.peca) ? 'grab' : 'crosshair');
 
   // teclado
   const tecla = (e) => {
@@ -421,12 +435,12 @@ export async function montar(app, [id]) {
     if (k === 'r') { if (S.sel) girarSel(); else { S.rot = (S.rot + 1) % 4; pedir(); } }
     else if (k === 'q' || k === 'e') girarVista(k === 'e' ? 1 : 3);
     else if (k === 'n') alternarNoite();
-    else if (k === 'm') ed.querySelector('[data-a=regua]').click();
+    else if (k === 'm') ed.querySelector('[data-a=regua]').click(); else if (k === 'g') ed.querySelector('[data-a=grade]').click();
     else if (k === '+' || k === '=') zoom(1.2); else if (k === '-') zoom(1 / 1.2);
     else if ((k === 'delete' || k === 'backspace') && S.sel) apagarSel();
-    else if (k === 'escape') { S.sel = null; esconderSel(); S.peca = null; desenharPecas(); pedir(); }
+    else if (k === 'escape') { S.sel = null; esconderSel(); fecharVer(); if (edita) escolherFerr('tocar'); pedir(); }
     else if (k.startsWith('arrow')) { const v = { arrowup: [0, 60], arrowdown: [0, -60], arrowleft: [60, 0], arrowright: [-60, 0] }[k]; arrastar(...v); e.preventDefault(); }
-    else if (/^[1-4]$/.test(k) && edita) escolherFerr(FERRAMENTAS[+k - 1][0]);
+    else if (/^[1-5]$/.test(k) && edita) escolherFerr(FERRAMENTAS[+k - 1][0]);
   };
   const solta = (e) => { if (e.key === ' ') { espaco = false; cv.style.cursor = cursor(); } };
   document.addEventListener('keydown', tecla); document.addEventListener('keyup', solta);
@@ -435,39 +449,59 @@ export async function montar(app, [id]) {
   const selBox = $('.ed-sel');
   function selecionar(o) {
     S.sel = o; const p = OBJETOS[o.t];
-    selBox.innerHTML = `<b>${p.nome}</b>${edita ? `<button data-s="girar" title="Girar (R)">🔄</button>${p.cores ? '<button data-s="cor" title="Trocar a cor">🎨</button>' : ''}<button data-s="copiar" title="Usar esta peça">✏️</button><button data-s="apagar" title="Apagar (Delete)">🗑️</button>` : ''}<button data-s="fechar" title="Fechar">✕</button>`;
-    selBox.classList.remove('esconde'); posicionarSel(); pedir();
+    const bt = (s2, e, n, t) => `<button data-s="${s2}" title="${t}"><span>${e}</span><small>${n}</small></button>`;
+    selBox.innerHTML = `<b class="ed-sel-n"><img src="${miniatura(o.t, o.c || 0, 44)}" alt="">${p.nome}</b><div class="ed-sel-bts">${edita ? bt('girar', '🔄', 'Girar', 'Girar (R)') + (p.cores ? bt('cor', '🎨', 'Cor', 'Trocar a cor') : '') + bt('mover', '✋', 'Mover', 'Arrastar para outro lugar') + bt('copiar', '✏️', 'Usar', 'Colocar mais desta peça') + bt('apagar', '🗑️', 'Apagar', 'Apagar (Delete)') : ''}${bt('fechar', '✕', 'Fechar', 'Fechar')}</div>`;
+    selBox.classList.remove('esconde'); ed.classList.add('com-sel'); posicionarSel(); pedir();
   }
   function posicionarSel() {
     if (!S.sel) return; const b = caixaGirada(S.cam.rot, S.sel); const G = lapis(ctx, S.cam, W, H, { planta: S.planta });
     const p = S.planta ? G.P(b.X + b.W / 2, b.Y) : G.P(b.X + b.W / 2, b.Y + b.D / 2, OBJETOS[S.sel.t].chato ? 10 : OBJETOS[S.sel.t].fino ? 50 : 70);
-    selBox.style.left = Math.max(80, Math.min(W - 120, p[0])) + 'px'; selBox.style.top = Math.max(76, p[1] - 12) + 'px';
+    selBox.style.left = Math.max(170, Math.min(W - 170, p[0])) + 'px'; selBox.style.top = Math.max(150, p[1] - 12) + 'px'; // nunca por cima da barra de cima
   }
-  function esconderSel() { selBox.classList.add('esconde'); }
+  function esconderSel() { selBox.classList.add('esconde'); ed.classList.remove('com-sel'); }
   function girarSel() { const o = S.sel; if (!o || !edita) return; comecarMudanca(); const r = ((o.r || 0) + 1) % 4; if (cabe(o.t, o.x, o.y, r, o)) { o.r = r; ix = indexar(m); } else aviso('Não dá para girar aqui: falta espaço', 'erro', 1600); terminarMudanca(); pedir(); }
   function apagarSel() { if (!S.sel || !edita) return; comecarMudanca(); m.objs = m.objs.filter((o) => o !== S.sel); S.sel = null; esconderSel(); ix = indexar(m); terminarMudanca(); pedir(); }
   selBox.addEventListener('click', (e) => {
     const a = e.target.closest('[data-s]')?.dataset.s; const o = S.sel; if (!a || !o) return;
     if (a === 'girar') girarSel();
-    if (a === 'cor') { comecarMudanca(); o.c = ((o.c || 0) + 1) % OBJETOS[o.t].cores; terminarMudanca(); pedir(); }
-    if (a === 'copiar') { S.peca = o.t; S.cor = o.c || 0; S.rot = o.r || 0; escolherFerr('colocar'); S.cat = OBJETOS[o.t].cats[0]; desenharCats(); desenharPecas(); S.sel = null; esconderSel(); }
+    if (a === 'cor') { comecarMudanca(); o.c = ((o.c || 0) + 1) % OBJETOS[o.t].cores; terminarMudanca(); selecionar(o); }
+    if (a === 'mover') { escolherFerr('mao'); selecionar(o); aviso('✋ Agora arraste a peça para outro lugar', 'ok', 2200); }
+    if (a === 'copiar') { escolherFerr('colocar'); S.peca = o.t; S.cor = o.c || 0; S.rot = o.r || 0; S.cat = OBJETOS[o.t].cats[0]; desenharCats(); desenharPecas(); S.sel = null; esconderSel(); }
     if (a === 'apagar') apagarSel();
     if (a === 'fechar') { S.sel = null; esconderSel(); pedir(); }
   });
 
   // ------------------------------------------------ ferramentas e vista
   const dica = $('.ed-dica');
+  let ferrIniciada = false, avisoFerr = null;
   function escolherFerr(f) {
-    S.ferr = f; ed.querySelectorAll('.ed-f[data-f]').forEach((b) => b.classList.toggle('on', b.dataset.f === f));
+    const mudou = S.ferr !== f; S.ferr = f; ed.querySelectorAll('.ed-f[data-f]').forEach((b) => { b.classList.toggle('on', b.dataset.f === f); b.setAttribute('aria-pressed', b.dataset.f === f); });
+    FERRAMENTAS.forEach(([id]) => ed.classList.toggle('ferr-' + id, id === f));
+    if (f !== 'colocar' && S.peca) { S.peca = null; desenharPecas(); } // fora do Colocar nenhuma peça fica escolhida: tocar no mapa não coloca nada
+    if (f === 'colocar' && !S.peca) ed.classList.remove('doca-mini');
     const d = FERRAMENTAS.find((x) => x[0] === f); dica.innerHTML = `<b>${d[1]} ${d[2]}</b> · ${d[3]}`; cv.style.cursor = cursor();
+    if (celular() && mudou && ferrIniciada && f !== 'terreno') { avisoFerr?.remove(); avisoFerr = aviso(d[4], 'ok', 1700); } // só uma dica por vez
+    ferrIniciada = true; if (celular()) requestAnimationFrame(medirDoca);
     const antes = ed.classList.contains('modo-terreno');
     ed.classList.toggle('modo-terreno', f === 'terreno'); if (f !== 'terreno') S.area = null; desenharTerreno(); pedir();
     // entrou ou saiu do Terreno: a doca e o painel mudam de tamanho, então o mapa se ajusta de novo
     if (antes !== (f === 'terreno') && S.cam) requestAnimationFrame(() => { medirDoca(); enquadrarTudo(); });
   }
-  const medirDoca = () => { const h = $('.ed-doca').offsetHeight || 0; ed.style.setProperty('--doca', h + 'px'); document.body.style.setProperty('--doca-g', (h + (celular() ? 80 : 30)) + 'px'); };
+  const medirDoca = () => {
+    const h = $('.ed-doca').offsetHeight || 0, t = celular() ? ($('.ed-ferr').offsetHeight || 0) : 0; ed.style.setProperty('--doca', h + 'px'); ed.style.setProperty('--abas', t + 'px');
+    document.body.style.setProperty('--doca-g', (h + t + (celular() ? 20 : 30)) + 'px');
+  };
+  // menu 👁️ Ver: grade, régua, plano cartesiano e noite, cada um com uma chave liga/desliga
+  const verEl = $('.ed-ver');
+  function atualizarVer() {
+    const on = { grade: S.grade, regua: S.regua.on, eixos: S.eixos, noite: S.noite }; let n = 0;
+    verEl.querySelectorAll('.ed-ver-i').forEach((b) => { const v = !!on[b.dataset.a]; b.classList.toggle('on', v); b.setAttribute('aria-checked', v); if (v) n++; });
+    const nb = $('.ed-ver-n'); nb.textContent = n; nb.classList.toggle('esconde', !n); $('.ed-bt-ver').classList.toggle('on', !verEl.classList.contains('esconde'));
+  }
+  function fecharVer() { verEl.classList.add('esconde'); $('.ed-bt-ver').setAttribute('aria-expanded', 'false'); atualizarVer(); }
+  document.addEventListener('pointerdown', (e) => { if (!verEl.classList.contains('esconde') && !e.target.closest('.ed-ver, .ed-bt-ver')) fecharVer(); }, true);
   function girarVista(passo = 1) { const rot = ((S.cam.rot || 0) + passo) % 4; S.cam = { ...S.cam, rot }; if (S.sel) posicionarSel(); pedir(); }
-  function alternarNoite() { S.noite = !S.noite; ed.classList.toggle('noite', S.noite); ed.querySelector('[data-a=noite]').classList.toggle('on', S.noite); ed.querySelector('[data-a=noite]').textContent = S.noite ? '☀️' : '🌙'; pedir(); }
+  function alternarNoite() { S.noite = !S.noite; ed.classList.toggle('noite', S.noite); atualizarVer(); pedir(); }
   function trocarVista(planta) {
     if (S.planta === planta) return; const z = S.cam.z * (planta ? TW / TP / 1.6 : TP * 1.6 / TW); S.planta = planta; S.cam = { ...S.cam, z };
     ed.querySelectorAll('.ed-modos [data-modo]').forEach((b) => b.classList.toggle('on', b.dataset.modo === (planta ? 'planta' : '3d'))); ed.classList.toggle('planta', planta); enquadrarTudo(false);
@@ -475,7 +509,7 @@ export async function montar(app, [id]) {
   ed.addEventListener('click', async (e) => {
     const f = e.target.closest('.ed-f[data-f]'); if (f) { escolherFerr(f.dataset.f); return; }
     const st = e.target.closest('[data-seta]'); if (st) { mudarTerreno(st.dataset.seta, st.dataset.op === 'mais'); return; }
-    const tr = e.target.closest('[data-terreno]'); if (tr) { const a2 = tr.dataset.terreno; if (a2 === 'todo') { S.area = null; desenharTerreno(); pedir(); } if (a2 === 'volta') crescer(); if (a2 === 'pronto') escolherFerr('colocar'); return; }
+    const tr = e.target.closest('[data-terreno]'); if (tr) { const a2 = tr.dataset.terreno; if (a2 === 'todo') { S.area = null; desenharTerreno(); pedir(); } if (a2 === 'volta') crescer(); if (a2 === 'pronto') escolherFerr('tocar'); return; }
     const md = e.target.closest('.ed-modos [data-modo]');
     if (md) {
       const v = md.dataset.modo; if (v === '3d' || v === 'planta') return trocarVista(v === 'planta');
@@ -486,15 +520,18 @@ export async function montar(app, [id]) {
     if (a === 'girar') girarVista(1); if (a === 'mais') zoom(1.25); if (a === 'menos') zoom(1 / 1.25); if (a === 'tudo') enquadrarTudo(); if (a === 'noite') alternarNoite();
     if (a === 'crescer') crescer();
     if (a === 'compartilhar') { await gravar(); const { compartilhar } = await import('../compartilhar.js'); compartilhar(m, () => { if (S.aba === 'sobre') desenharAba(); }); }
-    if (a === 'regua') { S.regua = S.regua.on ? { on: false, a: null, b: null } : { on: true, a: null, b: null }; S.sel = null; esconderSel(); atualizarRegua(); pedir(); }
-    if (a === 'eixos') { S.eixos = !S.eixos; ed.querySelector('[data-a=eixos]').classList.toggle('on', S.eixos); ed.classList.toggle('com-eixos', S.eixos); if (S.eixos) aviso('📊 Plano cartesiano: cada quadradinho é um ponto (x, y). O eixo y cresce para cima.', 'ok', 3500); pedir(); }
-    if (a === 'painel' && S.ferr === 'terreno' && innerWidth <= 1180) { escolherFerr('colocar'); S.painel = true; ed.classList.add('com-painel'); desenharAba(); return; }
+    if (a === 'ver') { const abrir = verEl.classList.contains('esconde'); verEl.classList.toggle('esconde', !abrir); $('.ed-bt-ver').setAttribute('aria-expanded', abrir); atualizarVer(); }
+    if (a === 'grade') { S.grade = !S.grade; guardarPref(); atualizarVer(); pedir(); }
+    if (a === 'encolher') { ed.classList.toggle('doca-mini'); requestAnimationFrame(medirDoca); }
+    if (a === 'regua') { S.regua = S.regua.on ? { on: false, a: null, b: null } : { on: true, a: null, b: null }; S.sel = null; esconderSel(); atualizarRegua(); atualizarVer(); pedir(); if (celular()) fecharVer(); }
+    if (a === 'eixos') { S.eixos = !S.eixos; atualizarVer(); ed.classList.toggle('com-eixos', S.eixos); if (S.eixos) aviso('📊 Plano cartesiano: cada quadradinho é um ponto (x, y). O eixo y cresce para cima.', 'ok', 3500); pedir(); }
+    if (a === 'painel' && S.ferr === 'terreno' && innerWidth <= 1180) { escolherFerr('tocar'); S.painel = true; ed.classList.add('com-painel'); desenharAba(); return; }
     if (a === 'painel') { S.painel = !S.painel; ed.classList.toggle('com-painel', S.painel); guardarPref(); if (S.painel) desenharAba(); }
     if (a === 'entrar') { sairVisitante(); location.hash = estado.nuvem ? '#/entrar' : '#/porta'; return; }
     if (a === 'duplicar') { const c = await duplicar(m, m.nome + ' (minha cópia)'); aviso('Cópia criada! Agora é sua 😊'); location.hash = '#/m/' + c.id; }
   });
   $('.ed-nome').onclick = () => { S.painel = true; ed.classList.add('com-painel'); S.aba = 'sobre'; desenharAba(); setTimeout(() => ed.querySelector('[name=nome]')?.focus(), 50); };
-  const guardarPref = () => { try { localStorage.setItem('bi:editor', JSON.stringify({ cat: S.cat, painel: S.painel, aba: S.aba })); } catch { /* */ } };
+  const guardarPref = () => { try { localStorage.setItem('bi:editor', JSON.stringify({ cat: S.cat, painel: S.painel, aba: S.aba, grade: S.grade })); } catch { /* */ } };
 
   // ------------------------------------------------ doca de peças
   const cats = $('.ed-cats'), pecasEl = $('.ed-pecas'), opc = $('.ed-opc'), busca = $('.ed-busca input');
@@ -509,9 +546,9 @@ export async function montar(app, [id]) {
     desenharOpcoes();
   }
   function desenharOpcoes() {
-    const p = pecaAtual(); if (!p || !edita) { opc.innerHTML = ''; return; }
+    const p = pecaAtual(); ed.classList.toggle('tem-peca', !!(p && edita)); if (!p || !edita) { opc.innerHTML = ''; return; }
     const cores = p.tipo === 'obj' && p.cores ? p.cores : 0;
-    opc.innerHTML = `<span class="ed-opc-n">${p.tipo === 'chao' ? '🖌️' : '✏️'} <b>${p.nome}</b></span>
+    opc.innerHTML = `<button class="ed-opc-n" data-a="encolher" title="Trocar de peça"><img src="${miniatura(p.id, S.cor, 44)}" alt=""><b>${p.nome}</b><small>trocar ▴</small></button>
       ${cores ? `<span class="ed-cores">${Array.from({ length: cores }, (_, i) => `<button data-cor="${i}" class="${i === S.cor ? 'on' : ''}" title="Cor ${i + 1}"><img src="${miniatura(p.id, i, 44)}" alt=""></button>`).join('')}</span>` : ''}
       ${p.tipo === 'obj' ? `<button class="bt bt--leve" data-girar>🔄 Girar <small>(R)</small></button>` : `<span class="ed-opc-d">Toque num quadradinho para pintar · arraste para pintar vários</span>`}`;
   }
@@ -522,6 +559,7 @@ export async function montar(app, [id]) {
     if (S.peca === b.dataset.id && S.ferr === 'colocar') { S.peca = null; } else { S.peca = b.dataset.id; S.cor = 0; }
     if (S.ferr !== 'colocar') escolherFerr('colocar');
     S.sel = null; esconderSel(); desenharPecas(); pedir();
+    if (celular() && S.peca) { ed.classList.add('doca-mini'); requestAnimationFrame(medirDoca); } // no celular a gaveta encolhe para mostrar o mapa
   });
   opc.addEventListener('click', (e) => {
     const c = e.target.closest('[data-cor]'); if (c) { S.cor = +c.dataset.cor; desenharOpcoes(); const card = pecasEl.querySelector(`.pc[data-id="${S.peca}"] img`); if (card) card.src = miniatura(S.peca, S.cor); pedir(); }
@@ -647,7 +685,7 @@ export async function montar(app, [id]) {
   }
 
   // ------------------------------------------------ começo
-  escolherFerr(S.ferr);
+  escolherFerr(S.ferr); atualizarVer();
   desenharCats(); desenharPecas(); botoesHist(); desenharAba(); notaTopo();
   medir();
   // pequena dica na primeira vez
