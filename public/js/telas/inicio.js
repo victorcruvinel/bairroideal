@@ -1,6 +1,6 @@
 // Bairro Ideal · tela inicial: minhas maquetes, maquetes da equipe e modelos prontos
 import { el, esc, janela, confirmar, aviso, dataBonita, num } from '../ui.js';
-import { listar, abrir, excluir, duplicar, salvar, estado, ehMinha } from '../dados.js';
+import { listar, abrir, excluir, duplicar, salvar, estado, ehMinha, aoMudar } from '../dados.js';
 import { MODELOS } from '../modelos.js';
 import { topo, chipTipo, corNota, notaTxt, novaMaquete, prepararParaSalvar } from './comum.js';
 
@@ -23,7 +23,7 @@ export async function montar(app) {
 
   const cartao = (m, minha) => `<div class="cartao-m" role="button" tabindex="0" data-id="${m.id}">
       <div class="th">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<span class="vazio">🗺️</span>'}</div>
-      ${m.pendente ? '<span class="pend">⏳ esperando internet</span>' : ''}
+      ${m.pendente ? `<span class="pend">${navigator.onLine ? '⏳ enviando…' : '⏳ esperando internet'}</span>` : ''}
       <button class="mais" data-menu="${m.id}" aria-label="Opções">⋯</button>
       <div class="info"><b>${esc(m.nome)}</b>
         <small>${minha ? '' : '👤 ' + esc(m.donoNome || m.dono) + ' · '}${dataBonita(m.atualizado)} · ${num(m.pecas)} peças</small>
@@ -53,6 +53,12 @@ export async function montar(app) {
   tela.querySelector('#expo2').onclick = async () => (await import('../compartilhar.js')).compartilharSite();
   ligarInstalar(tela.querySelector('#inst2'));
   await carregar();
+  // mudou algo em outro aparelho: a lista se atualiza sozinha (menos com o menu ⋯ aberto)
+  let recarregar = null; const depois = () => { clearTimeout(recarregar); recarregar = setTimeout(() => { if (tela.isConnected && !document.querySelector('.menu-flut')) carregar(); }, 400); };
+  const desligaNuvem = aoMudar((ev) => {
+    if (!tela.isConnected) { desligaNuvem(); return; }
+    if (ev.tipo === 'nuvem-mudou' || (ev.tipo === 'salvo' && ev.nuvem)) depois(); // chegou do outro aparelho, ou terminou de subir (tira o "esperando internet")
+  });
 
   tela.addEventListener('click', async (e) => {
     const mb = e.target.closest('[data-menu]');

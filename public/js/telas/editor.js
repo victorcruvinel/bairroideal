@@ -284,10 +284,21 @@ export async function montar(app, [id]) {
     if (r === 'descartar') { if (!(await confirmar('Descartar as mudanças?', 'Tudo o que você mudou desde o último <b>Salvar</b> vai sumir.', 'Descartar'))) return false; apagarRascunho(); pendente = false; return true; }
     return false; // fechou a janela = continua editando
   }
+  async function trocarPelaDaNuvem() {
+    if (!edita) return;
+    if (pendente || textoPendente) { aviso('☁️ Esta maquete foi salva em outro aparelho. Se você salvar aqui, a sua versão fica valendo.', 'ok', 5000); return; }
+    const nova = await abrir(m.id); if (!nova) return;
+    for (const k of Object.keys(m)) if (!(k in nova)) delete m[k];
+    Object.assign(m, nova); ix = indexar(m); S.sel = null; esconderSel(); desfazer = []; refazer = []; botoesHist();
+    ed.querySelector('.ed-nome b').textContent = m.nome; analise = analisar(m); desenharAba(); notaTopo(); pedir();
+    mostrarSelo('nuvem', 'Salvo na nuvem'); aviso('☁️ Atualizei com o que foi salvo no outro aparelho', 'ok', 3000);
+  }
   const desligarDados = aoMudar((ev) => {
+    if (ev.tipo === 'nuvem-mudou') { if (ev.ids.includes(m.id)) trocarPelaDaNuvem(); return; } // salvaram esta maquete em outro aparelho
     if (ev.id !== m.id) return;
     if (ev.tipo === 'salvo' && ev.nuvem && !pendente) mostrarSelo('nuvem', 'Salvo na nuvem');
     if (ev.tipo === 'erro_nuvem' && !pendente) mostrarSelo('aparelho', 'No aparelho');
+
   });
 
   // ------------------------------------------------ ações no mapa

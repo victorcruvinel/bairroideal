@@ -741,3 +741,8 @@ button, a, .pc, .ed-f, input, label { touch-action: manipulation; }
 /* menu ⋯ preso ao cartão (rola junto com a tela) */
 .larg { position: relative; }
 .menu-flut.menu-anc { position: absolute; z-index: 20; max-height: none; overflow: visible; width: max-content; max-width: calc(100vw - 16px); }
+/* selo da nuvem no topo */
+.nuvem-st.gira i { background: #4fc0f5; animation: piscaSinc 1s ease-in-out infinite; }
+.nuvem-st.espera i { background: var(--sol); }
+.nuvem-st.ok i { background: #52b788; box-shadow: 0 0 0 3px rgba(82, 183, 136, .2); }
+@keyframes piscaSinc { 50% { opacity: .3; transform: scale(.7); } }

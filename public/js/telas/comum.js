@@ -1,6 +1,6 @@
 // Bairro Ideal · pedaços usados em várias telas (topo, foto da maquete, nova maquete)
 import { el, esc, janela, aviso } from '../ui.js';
-import { estado, sair, salvar, sairVisitante } from '../dados.js';
+import { estado, sair, salvar, sairVisitante, estadoSinc, aoMudar } from '../dados.js';
 import { indexar, desenhar, enquadrar } from '../motor.js';
 import { analisar } from '../termometro.js';
 import { MODELOS } from '../modelos.js';
@@ -17,9 +17,21 @@ export function topo({ voltar = false, titulo = '' } = {}) {
     <a class="logo" href="#/"><img src="/img/icone.svg" alt=""><span>${titulo ? esc(titulo) : 'Bairro Ideal'}${titulo ? '' : '<small class="logo-por">por Elaine Freitas Muniz</small>'}</span></a>
     <div class="topo-dir">
       ${estado.visitante ? `<span class="chip chip-visita">👀 Visitante</span><button class="bt bt--verde" data-t="entrar">🔑 Entrar</button><button class="bt bt--leve" data-t="porta" title="Voltar para a porta de entrada">🚪</button>` : `
-      <span class="nuvem-st ${estado.nuvem && estado.sessao ? '' : 'off'}"><i></i>${estado.nuvem && estado.sessao ? 'Salvando na nuvem' : 'Salvo neste aparelho'}</span>
+      <span class="nuvem-st ${estado.nuvem && estado.sessao ? '' : 'off'}" role="status"><i></i><span>${estado.nuvem && estado.sessao ? 'Sincronizando…' : 'Salvo neste aparelho'}</span></span>
       ${u ? `<button class="avatar" title="${esc(u.nome)}">${esc((u.nome || u.email).split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</button>` : '<button class="bt bt--leve" data-t="porta" title="Voltar para a porta de entrada">🚪 Sair</button>'}`}
     </div></header>`);
+  // selo da nuvem: mostra o que está acontecendo de verdade (sincronizado, enviando, sem internet, esperando)
+  const st = t.querySelector('.nuvem-st');
+  if (st && estado.nuvem && estado.sessao) {
+    const pintar = (e) => {
+      const n = e.pendentes, txt = !e.online ? (n ? `Sem internet · ${n} para enviar` : 'Sem internet') : e.trabalhando ? 'Sincronizando…' : n ? `${n} esperando para enviar` : 'Sincronizado';
+      const cls = !e.online || (n && !e.trabalhando) ? 'espera' : e.trabalhando ? 'gira' : 'ok';
+      st.className = 'nuvem-st ' + cls; st.querySelector('span').textContent = txt;
+      st.title = cls === 'ok' ? `Tudo igual na nuvem e neste aparelho${e.ultima ? ' (conferido às ' + new Date(e.ultima).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ')' : ''}` : !e.online ? 'Quando a internet voltar, envio sozinho' : txt;
+    };
+    pintar(estadoSinc());
+    const desliga = aoMudar((ev) => { if (!st.isConnected) { desliga(); return; } if (ev.tipo === 'sinc') pintar(ev); });
+  }
   t.addEventListener('click', async (e) => {
     const a = e.target.closest('[data-t]')?.dataset.t; if (!a) return;
     if (a === 'entrar') { sairVisitante(); location.hash = estado.nuvem ? '#/entrar' : '#/porta'; }

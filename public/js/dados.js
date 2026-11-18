@@ -67,9 +67,11 @@ export async function iniciar() {
   }
   if (!estado.nuvem) { estado.usuario = null; estado.sessao = null; }
   estado.visitante = lembrado('bi:visitante') && !estado.sessao; estado.editorLocal = lembrado('bi:editor-local');
-  addEventListener('online', () => { estado.online = true; avisar({ tipo: 'online' }); enviarPendentes(); });
-  addEventListener('offline', () => { estado.online = false; avisar({ tipo: 'offline' }); });
-  enviarPendentes();
+  addEventListener('online', () => { estado.online = true; avisar({ tipo: 'online' }); sincronizar(); });
+  addEventListener('offline', () => { estado.online = false; avisar({ tipo: 'offline' }); mudouSinc(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sincronizar(); });
+  setInterval(() => { if (document.visibilityState === 'visible') sincronizar(); }, 40000);
+  await contarPendentes(); sincronizar();
   return estado;
 }
 // porta de entrada: aparece enquanto a pessoa não escolheu entrar (conta) ou visitar
@@ -90,14 +92,16 @@ const resumo = (m) => ({ id: m.id, nome: m.nome, tipo: m.tipo, cidade: m.cidade 
 // lista: as minhas (aparelho + nuvem) e as da equipe (só nuvem)
 export async function listar() {
   if (estado.visitante) return listarVisitante();
-  const locais = await localTodas(); const mapa = new Map(locais.map((m) => [m.id, { ...resumo(m), pendente: !!m.pendente, local: true }]));
+  const locais = await localTodas(); const mapa = new Map(locais.map((m) => [m.id, { ...resumo(m), pendente: !!m.pendente, nuvemEm: m.nuvemEm, local: true }]));
   let equipe = [];
   if (estado.nuvem && estado.sessao && navigator.onLine) {
     const r = await api('listar');
     if (r.ok) for (const s of r.maquetes) {
-      if (s.dono === conta()) { const l = mapa.get(s.id); if (!l || (!l.pendente && s.atualizado > l.atualizado)) mapa.set(s.id, { ...s, nuvem: true, local: !!l }); else l.nuvem = true; }
+      if (s.dono === conta()) { const l = mapa.get(s.id); if (!l || mudouNaNuvem(l, s)) mapa.set(s.id, { ...s, nuvem: true, local: !!l }); else l.nuvem = true; }
       else equipe.push({ ...s, nuvem: true });
     }
+    // apagada em outro aparelho: já esteve na nuvem, não tem nada para enviar e sumiu da lista
+    if (r.ok) { const naNuvem = new Set(r.maquetes.map((x) => x.id)); for (const l of locais) if (l.nuvemEm && !l.pendente && !naNuvem.has(l.id)) { mapa.delete(l.id); localTira(l.id); } }
   }
   const ordem = (a, b) => String(b.atualizado).localeCompare(String(a.atualizado));
   return { minhas: [...mapa.values()].sort(ordem), equipe: equipe.sort(ordem) };
@@ -126,12 +130,45 @@ export async function abrir(id) {
   const l = await localUma(id);
   if (estado.nuvem && estado.sessao && navigator.onLine && !(l && l.pendente)) {
     const r = await api('abrir', { id });
-    if (r.ok && r.maquete && (!l || r.maquete.atualizado > l.atualizado)) {
-      const txt = await descomprimir(r.maquete.dados); const m = { ...JSON.parse(txt), ...r.maquete.meta, conta: r.maquete.meta.dono === conta() ? conta() : 'equipe:' + r.maquete.meta.dono };
-      delete m.dados; if (m.conta === conta()) await localPor(m); return m;
-    }
+    if (r.ok && r.maquete) return daNuvem(r.maquete);
   }
   return l || null;
+}
+
+// ---------------- sincronização entre aparelhos
+// Regra: cada aparelho lembra qual versão da nuvem ele tem (nuvemEm). Se a nuvem tiver outra e aqui não houver
+// nada esperando para subir, baixa a da nuvem. Não depende do relógio de cada aparelho nem do formato da planilha.
+const mudouNaNuvem = (l, s) => !l.pendente && (l.nuvemEm ? String(s.atualizado) !== String(l.nuvemEm) : String(s.atualizado) > String(l.atualizado || ''));
+async function daNuvem(mq) {
+  const dados = JSON.parse(await descomprimir(mq.dados));
+  // "atualizado" de dentro dos dados é o carimbo de quem salvou (igual em todos os aparelhos); o da planilha pode vir em outro formato
+  const m = { ...dados, ...mq.meta, atualizado: dados.atualizado || mq.meta.atualizado, conta: mq.meta.dono === conta() ? conta() : 'equipe:' + mq.meta.dono };
+  delete m.dados; m.pendente = false; m.nuvemEm = mq.meta.atualizado; if (m.conta === conta()) await localPor(m); return m;
+}
+const sinc = { trabalhando: 0, pendentes: 0, erro: false, ultima: null };
+export const estadoSinc = () => ({ ...sinc, online: navigator.onLine, ligado: !!(estado.nuvem && estado.sessao && !estado.visitante) });
+function mudouSinc() { avisar({ tipo: 'sinc', ...estadoSinc() }); }
+async function contarPendentes() { try { sinc.pendentes = (await localTodas()).filter((m) => m.pendente).length; } catch { /* */ } }
+async function trabalho(fn) { sinc.trabalhando++; mudouSinc(); try { return await fn(); } finally { sinc.trabalhando--; await contarPendentes(); mudouSinc(); } }
+let novaTentativa = null;
+function tentarDeNovo() { clearTimeout(novaTentativa); novaTentativa = setTimeout(() => sincronizar(), 20000); }
+let sincronizando = null;
+export function sincronizar() {
+  if (!estadoSinc().ligado || !navigator.onLine) { mudouSinc(); return Promise.resolve(); }
+  if (sincronizando) return sincronizando;
+  sincronizando = trabalho(async () => {
+    await enviarPendentes(); await filaEnvio;
+    const r = await api('listar'); if (!r.ok) { sinc.erro = true; tentarDeNovo(); return; }
+    const locais = new Map((await localTodas()).map((m) => [m.id, m])), naNuvem = new Set(), mudaram = [];
+    for (const s of r.maquetes) {
+      if (s.dono !== conta()) continue; naNuvem.add(s.id); const l = locais.get(s.id);
+      if (!l || mudouNaNuvem(l, s)) { const a = await api('abrir', { id: s.id }); if (a.ok && a.maquete) { const n = await daNuvem(a.maquete); if (!l || n.atualizado !== l.atualizado) mudaram.push(s.id); } }
+    }
+    for (const l of locais.values()) if (l.nuvemEm && !l.pendente && !naNuvem.has(l.id)) { await localTira(l.id); mudaram.push(l.id); }
+    await contarPendentes(); sinc.erro = sinc.erro && sinc.pendentes > 0; sinc.ultima = Date.now();
+    if (mudaram.length) avisar({ tipo: 'nuvem-mudou', ids: mudaram });
+  }).finally(() => { sincronizando = null; });
+  return sincronizando;
 }
 
 let filaEnvio = Promise.resolve();
@@ -139,21 +176,29 @@ export async function salvar(m, { enviar = true } = {}) {
   if (estado.visitante) throw new Error('Visitante não salva');
   m.atualizado = new Date().toISOString(); m.conta = conta(); m.dono = m.dono || conta(); if (estado.usuario) m.donoNome = m.donoNome || estado.usuario.nome;
   m.pendente = !!(estado.nuvem && estado.sessao); await localPor(m); avisar({ tipo: 'salvo', id: m.id, nuvem: false });
-  if (enviar && m.pendente) filaEnvio = filaEnvio.then(() => enviarUma(m.id));
+  await contarPendentes(); mudouSinc();
+  if (enviar && m.pendente) filaEnvio = filaEnvio.then(() => trabalho(() => enviarUma(m.id)));
   return m;
 }
 async function enviarUma(id) {
   if (!navigator.onLine || !estado.sessao) return false;
+  try { return await enviarUmaJa(id); } catch (e) { console.error(e); sinc.erro = true; tentarDeNovo(); return false; }
+}
+async function enviarUmaJa(id) {
   const m = await localUma(id); if (!m || !m.pendente) return true;
   const { thumb, pendente, conta: _c, ...resto } = m; void pendente; void _c;
   const dados = await comprimir(JSON.stringify(resto));
   const r = await api('salvar', { meta: resumo(m), thumb: thumb || '', dados });
-  if (r.ok) { const atual = await localUma(id); if (atual && atual.atualizado === m.atualizado) { atual.pendente = false; await localPor(atual); } avisar({ tipo: 'salvo', id, nuvem: true }); return true; }
-  avisar({ tipo: 'erro_nuvem', id, erro: r.erro }); return false;
+  if (r.ok) {
+    const atual = await localUma(id); if (atual && atual.atualizado === m.atualizado) { atual.pendente = false; atual.nuvemEm = r.atualizado || m.atualizado; await localPor(atual); }
+    sinc.erro = false; sinc.ultima = Date.now(); avisar({ tipo: 'salvo', id, nuvem: true }); return true;
+  }
+  sinc.erro = true; tentarDeNovo(); avisar({ tipo: 'erro_nuvem', id, erro: r.erro }); return false;
 }
 export async function enviarPendentes() {
   if (!estado.nuvem || !estado.sessao || !navigator.onLine) return;
-  for (const m of await localTodas()) if (m.pendente) filaEnvio = filaEnvio.then(() => enviarUma(m.id));
+  for (const m of await localTodas()) if (m.pendente) filaEnvio = filaEnvio.then(() => trabalho(() => enviarUma(m.id)));
+  return filaEnvio;
 }
 export async function excluir(id) {
   await localTira(id);

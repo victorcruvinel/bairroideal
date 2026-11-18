@@ -69,8 +69,15 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Seção "Começar com um modelo pronto" saiu da tela inicial: os modelos aparecem na janela de **Nova maquete**.
 - Menu ⋯ do cartão: fica preso embaixo do botão (absoluto dentro de `.larg`, rola junto com a `.tela`); se não couber, a `.tela` desce sozinha até ele aparecer inteiro (se a página acabar antes, ganha um espaço extra `.menu-espaco` que some ao fechar). Medida com `offsetHeight` (a animação começa menor).
 
+## Rodada 10 (18/11): sincronização entre aparelhos
+- Selo do topo (comum.js) agora é real: **Sincronizado** (verde), **Sincronizando…** (azul piscando), **N esperando para enviar** / **Sem internet · N para enviar** (amarelo). Vem de `estadoSinc()` + evento `sinc` em dados.js.
+- Regra nova (dados.js): cada maquete local guarda `nuvemEm` = versão da nuvem que ela tem. Se a nuvem tiver outra e aqui não houver nada pendente, baixa (`daNuvem`). Não depende do relógio nem do formato de data da planilha. `atualizado` local vem de dentro dos dados (carimbo de quem salvou).
+- `sincronizar()`: envia pendentes, lista a nuvem, baixa o que mudou, apaga o que foi apagado em outro aparelho (só se já esteve na nuvem e não tem nada pendente). Roda ao abrir, ao voltar ao app (visibilitychange), quando a internet volta, a cada 40 s e 20 s depois de uma falha.
+- Evento `nuvem-mudou` ({ids}): o início recarrega a lista; o editor aberto troca pela versão nova se não tiver mudanças (senão avisa).
+- Teste novo: `node test/dois-aparelhos.mjs` (porta 8094, planilha falsa; computador + iPad na mesma conta: nome, peças, sem internet, apagar). Se um teste com servidor ficar travado, `pkill -f "servidor.mjs 809"`.
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 9. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
+Última publicação: Rodada 10. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos).
 1. Conferir o build do Cloudflare do último commit (a rede desta sessão bloqueava o site; pedir ao Victor olhar no painel).
 2. No print do Victor (iPad) a logo ainda era a antiga: conferir se a versão nova chegou (fechar e abrir o app; o ícone instalado pode exigir reinstalar).
 3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
@@ -83,7 +90,7 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 ## Testes
 - `npm test` (Node puro: Codigo.gs com Google falso, Worker, termômetro, matemática, CSS).
 - Playwright (Chromium já instalado no ambiente; use `PW=$(npm root -g)/playwright`). Precisam de `node test/servidor.mjs 8090` rodando: `interacoes.mjs`, `passeio-toque.mjs`, `pinca.mjs`.
-- Sobem o próprio servidor: `login.mjs` (8091, com planilha falsa), `atualizar-instalar.mjs` (8092), `service-worker.mjs` (8093).
+- Sobem o próprio servidor: `login.mjs` (8091, com planilha falsa), `atualizar-instalar.mjs` (8092), `service-worker.mjs` (8093), `dois-aparelhos.mjs` (8094, planilha falsa).
 - Rodar SEMPRE antes de publicar.
 
 ## Como começar uma sessão nova (para não trabalhar em versão velha)
