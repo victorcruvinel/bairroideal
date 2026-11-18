@@ -495,22 +495,19 @@ html[data-copiar="sim"] :is(.texto, .lousa, .hist-txt, .probs, .dicas, .cmp-tab)
 /* =================================================================== CARREGANDO */
 .carregando { position: fixed; inset: 0; z-index: 99; display: grid; place-items: center; padding: 20px; background: rgba(246, 239, 226, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; transition: opacity .25s; }
 .carregando.on { opacity: 1; }
-.carregando-cx { width: min(340px, 100%); background: #fff; border-radius: 28px; padding: 26px 22px 20px; display: grid; justify-items: center; gap: 10px; text-align: center; box-shadow: 0 8px 0 rgba(43, 42, 51, .06), 0 30px 60px -24px rgba(43, 42, 51, .45); transform: scale(.94); transition: transform .3s cubic-bezier(.3, 1.5, .5, 1); }
+.carregando-cx { width: min(320px, 100%); background: #fff; border-radius: 30px; padding: 18px 22px 20px; display: grid; justify-items: center; gap: 6px; text-align: center; box-shadow: 0 8px 0 rgba(43, 42, 51, .06), 0 30px 60px -24px rgba(43, 42, 51, .45); transform: translateY(10px) scale(.94); transition: transform .35s cubic-bezier(.3, 1.5, .5, 1); }
 .carregando.on .carregando-cx { transform: none; }
-.carregando-pecas { display: flex; gap: 14px; height: 74px; align-items: flex-end; }
-.carregando-pecas span { width: 48px; height: 48px; display: grid; justify-items: center; position: relative; animation: pula 1.2s calc(var(--i) * .16s) infinite cubic-bezier(.3, 0, .4, 1); }
-.carregando-pecas svg { width: 48px; height: 48px; }
-.carregando-pecas i { position: absolute; bottom: -10px; width: 34px; height: 8px; border-radius: 50%; background: rgba(43, 42, 51, .14); animation: sombra 1.2s calc(var(--i) * .16s) infinite cubic-bezier(.3, 0, .4, 1); }
-@keyframes pula { 0%, 60%, 100% { transform: translateY(0) scale(1, 1); } 10% { transform: translateY(0) scale(1.12, .88); } 30% { transform: translateY(-26px) scale(.94, 1.06); } 50% { transform: translateY(0) scale(1.08, .92); } }
-@keyframes sombra { 0%, 60%, 100% { transform: scale(1); opacity: 1; } 30% { transform: scale(.55); opacity: .5; } }
-.carregando-chao { width: 190px; height: 12px; border-radius: 50%; background: radial-gradient(ellipse, #b9e39b 0%, #8fd47a 60%, transparent 70%); margin-top: -4px; }
-.carregando-t { font-family: var(--titulo); font-weight: 600; font-size: 19px; margin-top: 4px; }
-.carregando-barra { width: 160px; height: 8px; border-radius: 9px; background: #efe6d4; overflow: hidden; }
-.carregando-barra i { display: block; height: 100%; width: 40%; border-radius: 9px; background: linear-gradient(90deg, #52b788, #ffc93c, #ff7a59); animation: barra 1.3s infinite ease-in-out; }
-@keyframes barra { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
-.carregando-dica { font-weight: 700; font-size: 13px; color: var(--tinta2); min-height: 36px; transition: opacity .3s; line-height: 1.4; }
+.carregando-obra { width: 220px; height: 170px; display: block; }
+.carregando-t { font-family: var(--titulo); font-weight: 600; font-size: 20px; color: var(--tinta); }
+.carregando-pontos { display: flex; gap: 7px; height: 14px; align-items: center; }
+.carregando-pontos i { width: 9px; height: 9px; border-radius: 50%; background: var(--verde); animation: pontinho 1.1s infinite ease-in-out; }
+.carregando-pontos i:nth-child(2) { background: var(--sol); animation-delay: .15s; }
+.carregando-pontos i:nth-child(3) { background: var(--coral); animation-delay: .3s; }
+@keyframes pontinho { 0%, 70%, 100% { transform: translateY(0) scale(1); opacity: .55; } 35% { transform: translateY(-6px) scale(1.15); opacity: 1; } }
+.carregando-dica { font-weight: 700; font-size: 13px; color: var(--tinta2); min-height: 36px; transition: opacity .3s; line-height: 1.4; margin-top: 4px; text-wrap: balance; }
 .carregando-dica.sai { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .carregando-pecas span, .carregando-pecas i, .carregando-barra i { animation-duration: 2.4s !important; animation-iteration-count: infinite !important; } }
+@media (prefers-reduced-motion: reduce) { .carregando-pontos i { animation-duration: 2.4s; } }
+@media (max-height: 420px) { .carregando-obra { width: 165px; height: 128px; } .carregando-cx { padding: 12px 18px 14px; } }
 
 /* =================================================================== INSTALAR */
 .instalar { position: fixed; z-index: 86; left: 50%; bottom: calc(18px + var(--seguro-b)); transform: translateX(-50%); width: min(560px, calc(100% - 24px)); background: #fff; border: 2px solid var(--linha); border-radius: 24px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; box-shadow: 0 20px 44px -16px rgba(0, 0, 0, .4); animation: instalarEntra .5s cubic-bezier(.3, 1.4, .5, 1); }
@@ -591,6 +588,7 @@ html[data-copiar="sim"] :is(.texto, .lousa, .hist-txt, .probs, .dicas, .cmp-tab)
 .modo-terreno .ed-terreno { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 4px; }
 .ter-medidas { display: grid; gap: 2px; font-size: 13px; font-weight: 700; color: var(--tinta2); } .ter-medidas > b { font-family: var(--titulo); font-size: 18px; color: var(--tinta); }
 .ter-medidas span b { color: var(--verde); } .ter-parte { color: #1d7fb3 !important; font-weight: 900 !important; }
+.ter-curta { display: none; }
 .ter-dica { font-size: 13.5px; font-weight: 700; color: var(--tinta2); line-height: 1.45; background: #eef7ff; border-radius: 14px; padding: 9px 12px; }
 .ter-bts { display: flex; flex-direction: column; gap: 6px; } .ter-bts .bt { padding: 8px 12px; font-size: 14px; }
 .ed-setas { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
@@ -603,13 +601,19 @@ html[data-copiar="sim"] :is(.texto, .lousa, .hist-txt, .probs, .dicas, .cmp-tab)
 @keyframes setaPulsa { 0%, 100% { box-shadow: 0 5px 0 var(--sol2), 0 0 0 0 rgba(255,201,60,.55); } 50% { box-shadow: 0 5px 0 var(--sol2), 0 0 0 10px rgba(255,201,60,0); } }
 .modo-terreno .ed-sel { display: none; }
 /* iPad em pé e telas médias: medidas + botões em cima, dica embaixo (sem coluna fininha) */
+@media (max-width: 1180px) { /* no Terreno o painel lateral se esconde: as medidas já estão na doca e o mapa fica maior */
+  .modo-terreno .ed-painel { transform: translateX(calc(100% + 30px)); visibility: hidden; transition: transform .3s, visibility 0s .3s; }
+  .modo-terreno.com-painel .ed-vista, .modo-terreno.com-painel .ed-doca { right: 14px; }
+}
 @media (min-width: 761px) and (max-width: 1180px) {
   .modo-terreno .ed-terreno { grid-template-columns: 1fr auto; grid-template-areas: 'med bts' 'dica dica'; gap: 10px 14px; }
   .ter-medidas { grid-area: med; } .ter-dica { grid-area: dica; } .ter-bts { grid-area: bts; }
 }
 @media (max-width: 760px) {
   .modo-terreno .ed-terreno { grid-template-columns: 1fr; gap: 8px; } .ter-bts { flex-direction: row; } .ter-bts .bt { flex: 1; padding: 8px 4px; font-size: 12.5px; }
-  .ter-dica { font-size: 12.5px; padding: 7px 10px; } .ed-seta-mais { width: 48px; height: 48px; } .ed-seta-mais i { font-size: 22px; }
+  .ter-dica { font-size: 12.5px; padding: 7px 10px; } .ter-longa { display: none; } .ter-curta { display: inline !important; }
+  .modo-terreno .ed-vista [data-a=noite], .modo-terreno .ed-vista [data-a=regua], .modo-terreno .ed-vista [data-a=eixos] { display: none; }
+  .ter-medidas { font-size: 12px; } .ter-medidas > b { font-size: 16px; } .ed-seta-mais { width: 48px; height: 48px; } .ed-seta-mais i { font-size: 22px; }
 }
 /* exposição: botões do cartão sem cortar */
 .expo-b { flex-wrap: wrap; } .expo-b .bt { flex: 1 1 auto; min-width: 0; padding: 8px 6px; font-size: 13px; }
@@ -617,3 +621,5 @@ html[data-copiar="sim"] :is(.texto, .lousa, .hist-txt, .probs, .dicas, .cmp-tab)
 .cartao-m .nota { flex: none; }
 .grade-m { grid-template-columns: repeat(auto-fit, minmax(270px, 320px)); }
 @media (max-width: 760px) { .grade-m { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); } }
+/* celular baixinho (iPhone SE): botões da direita menores para não encostar na barra de ferramentas */
+@media (max-width: 760px) and (max-height: 720px) { .ed-vista { gap: 4px; } .ed-vista .redondo { width: 36px; height: 36px; font-size: 15px; } }

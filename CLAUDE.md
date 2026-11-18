@@ -44,12 +44,15 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Service worker corrigido (18/11): nunca entrega resposta redirecionada (o Cloudflare redireciona /index.html → /; o Safari dava "Response served by service worker has redirections"). Quem tinha a versão quebrada precisou limpar os dados do site uma vez.
 - Testes novos: `node test/pinca.mjs` (iPad), `node test/service-worker.mjs`; `test/interacoes.mjs` testa as setas do terreno e o L.
 
+## Rodada 6 (18/11)
+- Carregando novo (`carregando()` em ui.js): mini-maquete 3×3 desenhada com o motor de verdade (lapis + OBJETOS), chão sobe, peças caem quicando, 3 cenas que se revezam; pontinhos verde/sol/coral; dicas atualizadas (sem balde).
+- 📐 Terreno em todos os aparelhos: ao entrar/sair o mapa se reenquadra deixando folga para as setas (`areaUtil` com margem); até 1180 px de largura o painel lateral some no modo Terreno (mapa maior no iPad); a câmera se afasta sozinha se o terreno crescer para fora (`seguirTerreno`). No celular: dica curta, sem botões noite/régua/x-y no Terreno. iPhone SE: botões da direita menores.
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: 7f20b20 (18/11) = painel do Terreno arrumado no iPad em pé (dica embaixo, sem coluna fininha). Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker). Fotos do Terreno (computador, iPad, celular, L) já mandadas.
-1. Conferir se o build do Cloudflare do 7f20b20 deu "success" (nesta sessão a rede bloqueou o site e não havia ferramenta para ver os checks; pedir ao Victor olhar no painel).
-2. Conferir com o Victor no iPad: pinça no mapa, setas do terreno, fazer um L. Ajustar o que ele pedir.
-3. (Ideia) No iPad em pé o mapa fica pequeno no modo Terreno (sobra espaço em cima); dá para aproximar mais.
-4. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev; ele pode querer trocar.
+Última publicação: Rodada 6. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
+1. Conferir o build do Cloudflare do último commit (nesta sessão a rede bloqueou o site e não havia ferramenta para ver os checks; pedir ao Victor olhar no painel).
+2. Conferir com o Victor no iPad: pinça no mapa, setas do terreno, fazer um L, carregando novo. Ajustar o que ele pedir.
+3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev; ele pode querer trocar.
 
 ## Infra
 - Cloudflare Workers: `wrangler.jsonc` (nome `bairroideal`, domínio bairroideal.victorcruvinel.dev). `worker/index.js` entrega `public/`, faz `/api` → Apps Script, monta `/sw.js` com a versão do deploy. Sem `APPS_SCRIPT_URL` = modo local (sem login).

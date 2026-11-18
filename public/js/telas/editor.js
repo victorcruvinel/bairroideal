@@ -89,9 +89,13 @@ export async function montar(app, [id]) {
   }
   const celular = () => innerWidth <= 760;
   const areaUtil = () => { // pedaço da tela que não fica atrás do painel, das ferramentas e da doca
-    const p = S.painel && innerWidth > 980 ? 340 : 0, doca = (edita ? $('.ed-doca').offsetHeight : 0) || 0;
-    if (celular()) { const f = edita ? $('.ed-ferr').offsetHeight + 8 : 0; return { x: 8, y: 104, w: W - 60, h: H - 104 - doca - f - 16 }; }
-    return { x: edita ? 86 : 20, y: 70, w: W - p - (edita ? 150 : 90), h: H - doca - 90 };
+    const ter = S.ferr === 'terreno' && edita; // no modo Terreno sobra espaço em volta para as setas
+    const p = S.painel && innerWidth > 980 && !(ter && innerWidth <= 1180) ? 340 : 0, doca = (edita ? $('.ed-doca').offsetHeight : 0) || 0;
+    let a;
+    if (celular()) { const f = edita ? $('.ed-ferr').offsetHeight + 8 : 0; a = { x: 8, y: 104, w: W - 60, h: H - 104 - doca - f - 16 }; }
+    else a = { x: edita ? 86 : 20, y: 70, w: W - p - (edita ? 150 : 90), h: H - doca - 90 };
+    if (ter) { const mx = celular() ? 14 : 64, my = celular() ? 44 : 56; a = { x: a.x + mx, y: a.y + my, w: a.w - 2 * mx, h: a.h - 2 * my }; }
+    return a;
   };
   function enquadrarTudo(anima = true) {
     const a = areaUtil(); const c = enquadrar(ix, Math.max(200, a.w), Math.max(200, a.h), S.cam?.rot || 0, S.planta, .92);
@@ -279,14 +283,20 @@ export async function montar(app, [id]) {
       if (lado === 'L') S.area.x1 = Math.max(S.area.x0, S.area.x1 + d); if (lado === 'O') S.area.x0 = Math.min(S.area.x1, S.area.x0 - d);
       if (lado === 'S') S.area.y1 = Math.max(S.area.y0, S.area.y1 + d); if (lado === 'N') S.area.y0 = Math.min(S.area.y1, S.area.y0 - d);
     }
-    ix = indexar(m); terminarMudanca(); pedir(); desenharTerreno();
+    ix = indexar(m); terminarMudanca(); pedir(); desenharTerreno(); seguirTerreno();
     if (caiu) aviso(`${caiu} ${caiu === 1 ? 'peça saiu' : 'peças saíram'} junto com o chão (dá para desfazer ↶)`, 'ok', 2600);
     void n;
   }
   function crescer() {
     comecarMudanca(); const novos = [];
     for (const k of Object.keys(m.chao)) { const [x, y] = k.split(',').map(Number); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const n = (x + dx) + ',' + (y + dy); if (!m.chao[n]) novos.push(n); } }
-    novos.forEach((n) => { m.chao[n] = 'grama'; }); ix = indexar(m); S.area = null; terminarMudanca(); pedir(); desenharTerreno();
+    novos.forEach((n) => { m.chao[n] = 'grama'; }); ix = indexar(m); S.area = null; terminarMudanca(); pedir(); desenharTerreno(); seguirTerreno();
+  }
+  // se o terreno cresceu para fora da tela (e as setas iam ficar escondidas), a câmera se afasta para mostrar tudo
+  function seguirTerreno() {
+    const a = areaUtil(), G = lapis(ctx, S.cam, W, H, { planta: S.planta }), rot = S.cam.rot || 0, { x0, y0, x1, y1 } = ix.lim;
+    const fora = [[x0, y0], [x1 + 1, y0], [x1 + 1, y1 + 1], [x0, y1 + 1]].some(([x, y]) => { const [X, Y] = girar(rot, x, y); const [px, py] = G.P(X, Y); return px < a.x || px > a.x + a.w || py < a.y - 40 || py > a.y + a.h; });
+    if (fora) enquadrarTudo();
   }
   function colocarObjeto(c) {
     const f = fantasma(); if (!f) return false;
@@ -450,8 +460,12 @@ export async function montar(app, [id]) {
   function escolherFerr(f) {
     S.ferr = f; ed.querySelectorAll('.ed-f[data-f]').forEach((b) => b.classList.toggle('on', b.dataset.f === f));
     const d = FERRAMENTAS.find((x) => x[0] === f); dica.innerHTML = `<b>${d[1]} ${d[2]}</b> · ${d[3]}`; cv.style.cursor = cursor();
+    const antes = ed.classList.contains('modo-terreno');
     ed.classList.toggle('modo-terreno', f === 'terreno'); if (f !== 'terreno') S.area = null; desenharTerreno(); pedir();
+    // entrou ou saiu do Terreno: a doca e o painel mudam de tamanho, então o mapa se ajusta de novo
+    if (antes !== (f === 'terreno') && S.cam) requestAnimationFrame(() => { medirDoca(); enquadrarTudo(); });
   }
+  const medirDoca = () => { const h = $('.ed-doca').offsetHeight || 0; ed.style.setProperty('--doca', h + 'px'); document.body.style.setProperty('--doca-g', (h + (celular() ? 80 : 30)) + 'px'); };
   function girarVista(passo = 1) { const rot = ((S.cam.rot || 0) + passo) % 4; S.cam = { ...S.cam, rot }; if (S.sel) posicionarSel(); pedir(); }
   function alternarNoite() { S.noite = !S.noite; ed.classList.toggle('noite', S.noite); ed.querySelector('[data-a=noite]').classList.toggle('on', S.noite); ed.querySelector('[data-a=noite]').textContent = S.noite ? '☀️' : '🌙'; pedir(); }
   function trocarVista(planta) {
@@ -474,6 +488,7 @@ export async function montar(app, [id]) {
     if (a === 'compartilhar') { await gravar(); const { compartilhar } = await import('../compartilhar.js'); compartilhar(m, () => { if (S.aba === 'sobre') desenharAba(); }); }
     if (a === 'regua') { S.regua = S.regua.on ? { on: false, a: null, b: null } : { on: true, a: null, b: null }; S.sel = null; esconderSel(); atualizarRegua(); pedir(); }
     if (a === 'eixos') { S.eixos = !S.eixos; ed.querySelector('[data-a=eixos]').classList.toggle('on', S.eixos); ed.classList.toggle('com-eixos', S.eixos); if (S.eixos) aviso('📊 Plano cartesiano: cada quadradinho é um ponto (x, y). O eixo y cresce para cima.', 'ok', 3500); pedir(); }
+    if (a === 'painel' && S.ferr === 'terreno' && innerWidth <= 1180) { escolherFerr('colocar'); S.painel = true; ed.classList.add('com-painel'); desenharAba(); return; }
     if (a === 'painel') { S.painel = !S.painel; ed.classList.toggle('com-painel', S.painel); guardarPref(); if (S.painel) desenharAba(); }
     if (a === 'entrar') { sairVisitante(); location.hash = estado.nuvem ? '#/entrar' : '#/porta'; return; }
     if (a === 'duplicar') { const c = await duplicar(m, m.nome + ' (minha cópia)'); aviso('Cópia criada! Agora é sua 😊'); location.hash = '#/m/' + c.id; }
@@ -611,7 +626,7 @@ export async function montar(app, [id]) {
     const n = ix.chao.size, L = ix.lim.x1 - ix.lim.x0, A = ix.lim.y1 - ix.lim.y0, ar = S.area;
     terrEl.innerHTML = `<div class="ter-medidas"><b>📐 Terreno</b><span>${n} quadradinhos × 100 m² = <b>${num(n * 100)} m²</b></span><span>cabe num retângulo de ${L} × ${A} (${num(L * 10)} m × ${num(A * 10)} m)</span>
       ${ar ? `<span class="ter-parte">🟦 Parte escolhida: ${ar.x1 - ar.x0 + 1} × ${ar.y1 - ar.y0 + 1} quadradinhos</span>` : ''}</div>
-      <p class="ter-dica">Toque nas <b>setas ➜ ＋</b> em volta do terreno para aumentar daquele lado, e no <b>－</b> para diminuir.<br>Para fazer um <b>L</b>: arraste no mapa para escolher só uma parte (fica azul) e use a seta.</p>
+      <p class="ter-dica"><span class="ter-longa">Toque nas <b>setas ➜ ＋</b> em volta do terreno para aumentar daquele lado, e no <b>－</b> para diminuir.<br>Para fazer um <b>L</b>: arraste no mapa para escolher só uma parte (fica azul) e use a seta.</span><span class="ter-curta"><b>➜ ＋</b> aumenta · <b>－</b> diminui · arraste no mapa para escolher uma parte e fazer um <b>L</b></span></p>
       <div class="ter-bts"><button class="bt" data-terreno="todo" ${ar ? '' : 'disabled'}>🟩 Terreno todo</button><button class="bt" data-terreno="volta">⤢ Crescer em volta</button><button class="bt bt--verde" data-terreno="pronto">✅ Pronto</button></div>`;
     posicionarSetas();
   }
