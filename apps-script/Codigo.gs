@@ -15,7 +15,8 @@
  * Os e-mails não usam emoji (alguns leitores de e-mail estragam).
  */
 
-var ADMIN_EMAIL = 'hello@victorcruvinel.dev';     // primeira conta (administrador)
+var ADMIN_EMAIL = 'hello@victorcruvinel.dev';     // primeira conta (administrador). É a conta do DESENVOLVEDOR: fica invisível
+                                                  // (não aparece em Pessoas, nem como dono das maquetes, nem nos convites)
 var REMETENTE = 'noreply@victorcruvinel.dev';      // usado se existir como "alias" no Gmail; senão sai do seu e-mail
 var NOME_APP = 'Bairro Ideal';
 var APP_URL = 'https://bairroideal.victorcruvinel.dev';
@@ -62,7 +63,7 @@ function doPost(e) {
 }
 
 function rotear_(d) {
-  var acao = String(d.acao || '');
+  var acao = String(d.acao || ''); VENDO_ = '';
   if (acao === 'auth.inicio') return authInicio_(d);
   if (acao === 'auth.codigo') return comTrava_(function () { return authCodigo_(d); });
   if (acao === 'auth.confirmar') return comTrava_(function () { return authConfirmar_(d); });
@@ -73,6 +74,7 @@ function rotear_(d) {
   if (acao === 'publico.abrir') { var rp = acharMaquete_(d.id); if (!rp || String(rp.publica) === 'nao') return { ok: false, erro: 'nao_achou' }; return abrirMaquete_(d.id); }
   var u = usuarioDaSessao_(d.sessao);
   if (!u) return { ok: false, erro: 'sessao' };
+  VENDO_ = u.email;
   switch (acao) {
     case 'eu': return { ok: true, usuario: publico_(u) };
     case 'sair': return comTrava_(function () { apagarSessao_(d.sessao); return { ok: true }; });
@@ -110,8 +112,13 @@ function iso_(v) { return v instanceof Date ? v.toISOString() : String(v || '');
 function txt_(v, max) { return String(v == null ? '' : v).replace(/^[=+\-@]/, "'$&").slice(0, max || 200); } // nada vira fórmula
 
 // ------------------------------------------------------------------ maquetes
+// conta do desenvolvedor: ninguém (além dela mesma) vê que ela existe
+var VENDO_ = ''; // e-mail de quem está pedindo (vazio = visitante)
+function ehDev_(email) { return !!email && normEmail_(email) === normEmail_(ADMIN_EMAIL); }
 function metaDe_(r) {
-  return { id: String(r.id), nome: String(r.nome), tipo: String(r.tipo || 'livre'), cidade: String(r.cidade || ''), dono: String(r.dono), donoNome: String(r.donoNome || ''),
+  var oculto = ehDev_(r.dono) && !ehDev_(VENDO_);
+  return { id: String(r.id), nome: String(r.nome), tipo: String(r.tipo || 'livre'), cidade: String(r.cidade || ''),
+    dono: oculto ? 'equipe' : String(r.dono), donoNome: oculto ? (VENDO_ ? 'Equipe ' + NOME_APP : '') : String(r.donoNome || ''),
     criado: iso_(r.criado), atualizado: iso_(r.atualizado), nota: r.nota === '' || r.nota == null ? null : Number(r.nota), pecas: Number(r.pecas || 0), area: Number(r.area || 0), thumb: String(r.thumb || ''), publica: String(r.publica) !== 'nao' };
 }
 function listarMaquetes_() { return linhas_('Maquetes').map(metaDe_); }
@@ -154,7 +161,7 @@ function salvarMaquete_(d, u) {
   if (typeof d.dados !== 'string' || d.dados.length < 2) return { ok: false, erro: 'dados' };
   if (d.dados.length > 6000000) return { ok: false, erro: 'grande_demais' };
   var r = acharMaquete_(id);
-  if (r && normEmail_(r.dono) !== u.email && u.papel !== 'admin') return { ok: false, erro: 'proibido' };
+  if (r && normEmail_(r.dono) !== u.email && u.papel !== 'admin' && !ehDev_(r.dono)) return { ok: false, erro: 'proibido' };
   var agora = new Date().toISOString();
   var thumb = String(d.thumb || ''); if (thumb.length > 48000 || thumb.indexOf('data:image/') !== 0) thumb = '';
   var partes = gravarDados_(id, d.dados);
@@ -169,13 +176,13 @@ function salvarMaquete_(d, u) {
 // arte para o WhatsApp (imagem jpeg em base64, feita pelo próprio app)
 function salvarArte_(d, u) {
   var r = acharMaquete_(d.id); if (!r) return { ok: false, erro: 'nao_achou' };
-  if (normEmail_(r.dono) !== u.email && u.papel !== 'admin') return { ok: false, erro: 'proibido' };
+  if (normEmail_(r.dono) !== u.email && u.papel !== 'admin' && !ehDev_(r.dono)) return { ok: false, erro: 'proibido' };
   var arte = String(d.arte || ''); if (!/^[A-Za-z0-9+/=]+$/.test(arte) || arte.length < 100 || arte.length > 900000) return { ok: false, erro: 'arte' };
   gravarDados_(String(r.id), arte, 'Artes'); return { ok: true };
 }
 function excluirMaquete_(id, u) {
   var r = acharMaquete_(id); if (!r) return { ok: false, erro: 'nao_achou' };
-  if (normEmail_(r.dono) !== u.email && u.papel !== 'admin') return { ok: false, erro: 'proibido' };
+  if (normEmail_(r.dono) !== u.email && u.papel !== 'admin' && !ehDev_(r.dono)) return { ok: false, erro: 'proibido' };
   aba_('Maquetes').deleteRow(r._linha); apagarDados_(String(r.id)); apagarDados_(String(r.id), 'Artes'); return { ok: true };
 }
 
@@ -185,7 +192,7 @@ function emailValido_(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e.leng
 function sha256_(t) { return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, t, Utilities.Charset.UTF_8).map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join(''); }
 function aleatorio_() { return (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, ''); }
 function usuario_(email) { email = normEmail_(email); return linhas_('Usuarios').filter(function (r) { return normEmail_(r.email) === email; })[0] || null; }
-function publico_(u) { return { email: normEmail_(u.email), nome: String(u.nome || ''), papel: String(u.papel || 'membro') }; }
+function publico_(u) { return { email: normEmail_(u.email), nome: String(u.nome || ''), papel: String(u.papel || 'membro'), dev: ehDev_(u.email) }; }
 
 function authInicio_(d) {
   var email = normEmail_(d.email); if (!emailValido_(email)) return { ok: false, erro: 'email' };
@@ -248,32 +255,33 @@ function apagarSessao_(token) {
 
 // ------------------------------------------------------------------ pessoas (só o administrador)
 function listarPessoas_() {
-  return linhas_('Usuarios').map(function (u) { return { email: normEmail_(u.email), nome: String(u.nome || ''), papel: String(u.papel || 'membro'), criado: iso_(u.criado), ultimoAcesso: iso_(u.ultimoAcesso), convidadoPor: String(u.convidadoPor || '') }; });
+  return linhas_('Usuarios').filter(function (u) { return !ehDev_(u.email); }).map(function (u) { return { email: normEmail_(u.email), nome: String(u.nome || ''), papel: String(u.papel || 'membro'), criado: iso_(u.criado), ultimoAcesso: iso_(u.ultimoAcesso), convidadoPor: String(u.convidadoPor || '') }; });
 }
 function convidar_(d, admin) {
   var email = normEmail_(d.email); if (!emailValido_(email)) return { ok: false, erro: 'email' };
   if (usuario_(email)) return { ok: false, erro: 'ja_existe' };
   var nome = txt_(String(d.nome || '').trim().replace(/\s+/g, ' '), 80);
-  aba_('Usuarios').appendRow(paraLinha_('Usuarios', { email: email, nome: nome, papel: d.papel === 'admin' ? 'admin' : 'membro', criado: new Date().toISOString(), ultimoAcesso: '', convidadoPor: admin.email }));
+  aba_('Usuarios').appendRow(paraLinha_('Usuarios', { email: email, nome: nome, papel: d.papel === 'admin' ? 'admin' : 'membro', criado: new Date().toISOString(), ultimoAcesso: '', convidadoPor: ehDev_(admin.email) ? '' : admin.email }));
   var enviado = emailConvite_(email, nome, admin);
   return { ok: true, enviado: enviado, pessoas: listarPessoas_() };
 }
 function emailConvite_(email, nome, admin) {
-  return enviarEmail_(email, admin.nome + ' convidou você para o ' + NOME_APP, moldura_('Você foi convidado(a)!',
-    '<p style="margin:0 0 12px">Olá' + (nome ? ', ' + esc_(nome.split(' ')[0]) : '') + '! <b>' + esc_(admin.nome) + '</b> convidou você para montar maquetes de bairros no ' + NOME_APP + '.</p>' +
+  var anonimo = ehDev_(admin.email); // o desenvolvedor não aparece: o convite vem do próprio Bairro Ideal
+  return enviarEmail_(email, anonimo ? 'Você foi convidado(a) para o ' + NOME_APP : admin.nome + ' convidou você para o ' + NOME_APP, moldura_('Você foi convidado(a)!',
+    '<p style="margin:0 0 12px">Olá' + (nome ? ', ' + esc_(nome.split(' ')[0]) : '') + '! ' + (anonimo ? 'Você foi convidado(a)' : '<b>' + esc_(admin.nome) + '</b> convidou você') + ' para montar maquetes de bairros no ' + NOME_APP + '.</p>' +
     '<p style="margin:0 0 18px">Para entrar, abra o link abaixo, digite este e-mail (' + esc_(email) + ') e use o código que vamos mandar. Não precisa de senha.</p>' +
     '<p style="margin:0 0 8px"><a href="' + APP_URL + '/#/entrar" style="display:inline-block;background:#ffc93c;color:#2b2a33;padding:12px 22px;border-radius:12px;font-weight:800;text-decoration:none">Abrir o ' + NOME_APP + '</a></p>'));
 }
-function reenviarConvite_(email, admin) { var u = usuario_(email); if (!u) return { ok: false, erro: 'nao_achou' }; return { ok: emailConvite_(normEmail_(u.email), String(u.nome || ''), admin) }; }
+function reenviarConvite_(email, admin) { var u = ehDev_(email) ? null : usuario_(email); if (!u) return { ok: false, erro: 'nao_achou' }; return { ok: emailConvite_(normEmail_(u.email), String(u.nome || ''), admin) }; }
 function removerPessoa_(email, admin) {
-  email = normEmail_(email); if (email === admin.email) return { ok: false, erro: 'voce_mesmo' };
+  email = normEmail_(email); if (email === admin.email) return { ok: false, erro: 'voce_mesmo' }; if (ehDev_(email)) return { ok: false, erro: 'nao_achou' };
   var u = usuario_(email); if (!u) return { ok: false, erro: 'nao_achou' };
   aba_('Usuarios').deleteRow(u._linha);
   var sh = aba_('Sessoes'); linhas_('Sessoes').filter(function (s) { return normEmail_(s.email) === email; }).reverse().forEach(function (s) { sh.deleteRow(s._linha); });
   return { ok: true, pessoas: listarPessoas_() };
 }
 function mudarPapel_(email, papel, admin) {
-  email = normEmail_(email); if (email === admin.email) return { ok: false, erro: 'voce_mesmo' };
+  email = normEmail_(email); if (email === admin.email) return { ok: false, erro: 'voce_mesmo' }; if (ehDev_(email)) return { ok: false, erro: 'nao_achou' };
   var u = usuario_(email); if (!u) return { ok: false, erro: 'nao_achou' };
   aba_('Usuarios').getRange(u._linha, ABAS.Usuarios.indexOf('papel') + 1).setValue(papel === 'admin' ? 'admin' : 'membro');
   return { ok: true, pessoas: listarPessoas_() };

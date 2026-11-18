@@ -45,16 +45,40 @@ test('token do Cloudflare: sem o token certo, nada entra', () => {
 test('convidar pessoas, e só o admin convida', async () => {
   const g = criarGas(); const adm = await entrar(g, ADMIN, 'Victor Cruvinel');
   let r = g.chamar({ acao: 'pessoas.convidar', sessao: adm, email: 'Prof@Escola.com', nome: 'Maria Souza' });
-  assert.equal(r.ok, true); assert.equal(r.pessoas.length, 2); assert.equal(r.enviado, true);
+  assert.equal(r.ok, true); assert.equal(r.pessoas.length, 1, 'a conta do desenvolvedor não aparece'); assert.equal(r.enviado, true);
+  assert.ok(!r.pessoas.some((p) => p.email === ADMIN), 'desenvolvedor invisível em Pessoas');
   const conv = g.emails.at(-1); assert.equal(conv.para, 'prof@escola.com'); assert.match(conv.html, /bairroideal\.victorcruvinel\.dev/);
+  assert.doesNotMatch(conv.assunto + conv.html, /Victor/, 'convite do desenvolvedor não mostra o nome dele');
   assert.equal(g.chamar({ acao: 'pessoas.convidar', sessao: adm, email: 'prof@escola.com' }).erro, 'ja_existe');
   assert.equal(g.chamar({ acao: 'auth.inicio', email: 'prof@escola.com' }).nome, 'Maria Souza');
   const prof = await entrar(g, 'prof@escola.com', 'Maria Souza');
   assert.equal(g.chamar({ acao: 'eu', sessao: prof }).usuario.papel, 'membro');
   assert.equal(g.chamar({ acao: 'pessoas.convidar', sessao: prof, email: 'z@z.com' }).erro, 'proibido');
   assert.equal(g.chamar({ acao: 'pessoas.remover', sessao: adm, email: ADMIN }).erro, 'voce_mesmo');
-  r = g.chamar({ acao: 'pessoas.remover', sessao: adm, email: 'prof@escola.com' }); assert.equal(r.pessoas.length, 1);
+  r = g.chamar({ acao: 'pessoas.remover', sessao: adm, email: 'prof@escola.com' }); assert.equal(r.pessoas.length, 0);
   assert.equal(g.chamar({ acao: 'eu', sessao: prof }).erro, 'sessao', 'sessão some com a pessoa');
+});
+
+test('conta do desenvolvedor invisível: outro admin não vê, não remove; maquetes dele viram "da equipe"', async () => {
+  const g = criarGas(); const dev = await entrar(g, ADMIN, 'Victor Cruvinel');
+  assert.equal(g.chamar({ acao: 'eu', sessao: dev }).usuario.dev, true);
+  g.chamar({ acao: 'pessoas.convidar', sessao: dev, email: 'prof@escola.com', nome: 'Elaine Muniz', papel: 'admin' });
+  g.chamar({ acao: 'pessoas.convidar', sessao: dev, email: 'aluna@escola.com', nome: 'Ana Lima' });
+  const prof = await entrar(g, 'prof@escola.com', 'Elaine Muniz'), aluna = await entrar(g, 'aluna@escola.com', 'Ana Lima');
+  const lp = g.chamar({ acao: 'pessoas.listar', sessao: prof }).pessoas; assert.deepEqual(lp.map((p) => p.email).sort(), ['aluna@escola.com', 'prof@escola.com']);
+  assert.equal(g.chamar({ acao: 'pessoas.remover', sessao: prof, email: ADMIN }).erro, 'nao_achou');
+  assert.equal(g.chamar({ acao: 'pessoas.papel', sessao: prof, email: ADMIN, papel: 'membro' }).erro, 'nao_achou');
+  assert.equal(g.chamar({ acao: 'eu', sessao: dev }).usuario.papel, 'admin', 'continua admin');
+  // a professora (admin) convida: aí o nome dela aparece normalmente
+  g.chamar({ acao: 'pessoas.convidar', sessao: prof, email: 'z@escola.com', nome: 'Zé Silva' }); assert.match(g.emails.at(-1).assunto, /Elaine Muniz convidou/);
+  // maquete do desenvolvedor: para os outros é "da equipe", sem nome; a aluna (não admin) pode editar
+  const meta = { id: 'mdev0001', nome: 'Vila Esperança', tipo: 'ideal', atualizado: '2026-11-18T10:00:00.000Z' };
+  assert.equal(g.chamar({ acao: 'salvar', sessao: dev, meta, dados: 'g:abc' }).ok, true);
+  const vista = g.chamar({ acao: 'listar', sessao: aluna }).maquetes[0]; assert.equal(vista.dono, 'equipe'); assert.doesNotMatch(vista.donoNome, /Victor/);
+  assert.equal(g.chamar({ acao: 'listar', sessao: dev }).maquetes[0].dono, ADMIN, 'o próprio desenvolvedor vê como dele');
+  assert.equal(g.chamar({ acao: 'publico.listar' }).maquetes[0].donoNome, '', 'visitante não vê nome');
+  assert.equal(g.chamar({ acao: 'salvar', sessao: aluna, meta: { ...meta, nome: 'Vila da aluna' }, dados: 'g:abcd' }).ok, true, 'aluna edita maquete da equipe');
+  assert.equal(g.chamar({ acao: 'abrir', sessao: prof, id: 'mdev0001' }).maquete.meta.dono, 'equipe');
 });
 
 test('maquetes grandes: salvar em pedaços, listar, abrir, permissões e apagar', async () => {

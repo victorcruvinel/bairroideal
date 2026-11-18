@@ -23,10 +23,10 @@ try {
   await p.waitForTimeout(2500);
   let pl = await (await fetch(URL0 + '/__planilha')).json(); assert.equal(pl.maquetes, 2, 'exemplos foram para a nuvem');
   // convidar
-  await p.evaluate(() => { location.hash = '#/pessoas'; }); await p.waitForSelector('.pessoa');
+  await p.evaluate(() => { location.hash = '#/pessoas'; }); await p.waitForSelector('.lista-p .vazio-lista:has-text("Ninguém convidado")'); // só o desenvolvedor existe, e ele é invisível
   await p.fill('.convite [name=email]', 'professora@escola.com'); await p.fill('.convite [name=nome]', 'Ana Paula'); await p.click('.convite .bt--verde'); await p.waitForTimeout(800);
-  assert.equal(await p.locator('.pessoa').count(), 2);
-  pl = await (await fetch(URL0 + '/__planilha')).json(); assert.ok(pl.emails.some((e) => e.para === 'professora@escola.com' && /convidou/.test(e.assunto)));
+  assert.equal(await p.locator('.pessoa').count(), 1, 'só a professora: a conta do desenvolvedor é invisível');
+  pl = await (await fetch(URL0 + '/__planilha')).json(); assert.ok(pl.emails.some((e) => e.para === 'professora@escola.com' && /Você foi convidado/.test(e.assunto) && !/Victor/.test(e.assunto)), 'convite sem o nome do desenvolvedor');
   if (FOTOS) await p.screenshot({ path: FOTOS + '/17-pessoas.png' });
   // editar uma maquete e conferir que sobe
   await p.evaluate(() => { location.hash = '#/'; }); await p.waitForSelector('.cartao-m[data-id]'); await p.locator('.cartao-m[data-id]').first().click(); await p.waitForSelector('.ed-mapa');

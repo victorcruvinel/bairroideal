@@ -746,3 +746,14 @@ button, a, .pc, .ed-f, input, label { touch-action: manipulation; }
 .nuvem-st.espera i { background: var(--sol); }
 .nuvem-st.ok i { background: #52b788; box-shadow: 0 0 0 3px rgba(82, 183, 136, .2); }
 @keyframes piscaSinc { 50% { opacity: .3; transform: scale(.7); } }
+/* convite: escolher o papel */
+.papeis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 10px; }
+.papel-op { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 2px solid var(--linha); border-radius: 16px; background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
+.papel-op input { position: absolute; opacity: 0; pointer-events: none; }
+.papel-op:has(input:checked) { border-color: var(--verde); background: #eef8f1; box-shadow: 0 0 0 3px rgba(31, 111, 80, .12); }
+.papel-op:has(input:focus-visible) { outline: 3px solid var(--sol); }
+.papel-e { font-size: 24px; line-height: 1; }
+.papel-op > span > b { display: block; font-size: 15.5px; font-weight: 900; color: var(--tinta); } .papel-op small { display: block; font-size: 13px; color: var(--tinta2); font-weight: 600; line-height: 1.4; margin-top: 2px; } .papel-op small b { color: var(--tinta); }
+.convite .erro-msg:empty { display: none; }
+.dev-aviso { margin: 0 0 14px; text-align: left; }
+@media (max-width: 600px) { .papeis { grid-template-columns: 1fr; } }

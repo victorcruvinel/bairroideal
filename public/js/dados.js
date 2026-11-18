@@ -97,7 +97,7 @@ export async function listar() {
   if (estado.nuvem && estado.sessao && navigator.onLine) {
     const r = await api('listar');
     if (r.ok) for (const s of r.maquetes) {
-      if (s.dono === conta()) { const l = mapa.get(s.id); if (!l || mudouNaNuvem(l, s)) mapa.set(s.id, { ...s, nuvem: true, local: !!l }); else l.nuvem = true; }
+      if (minhaOuEquipe(s.dono)) { const l = mapa.get(s.id); if (!l || mudouNaNuvem(l, s)) mapa.set(s.id, { ...s, nuvem: true, local: !!l }); else l.nuvem = true; }
       else equipe.push({ ...s, nuvem: true });
     }
     // apagada em outro aparelho: já esteve na nuvem, não tem nada para enviar e sumiu da lista
@@ -138,11 +138,13 @@ export async function abrir(id) {
 // ---------------- sincronização entre aparelhos
 // Regra: cada aparelho lembra qual versão da nuvem ele tem (nuvemEm). Se a nuvem tiver outra e aqui não houver
 // nada esperando para subir, baixa a da nuvem. Não depende do relógio de cada aparelho nem do formato da planilha.
+// "equipe" = maquete da conta invisível do desenvolvedor: todo mundo da conta pode mexer
+const minhaOuEquipe = (dono) => dono === conta() || dono === 'equipe';
 const mudouNaNuvem = (l, s) => !l.pendente && (l.nuvemEm ? String(s.atualizado) !== String(l.nuvemEm) : String(s.atualizado) > String(l.atualizado || ''));
 async function daNuvem(mq) {
   const dados = JSON.parse(await descomprimir(mq.dados));
   // "atualizado" de dentro dos dados é o carimbo de quem salvou (igual em todos os aparelhos); o da planilha pode vir em outro formato
-  const m = { ...dados, ...mq.meta, atualizado: dados.atualizado || mq.meta.atualizado, conta: mq.meta.dono === conta() ? conta() : 'equipe:' + mq.meta.dono };
+  const m = { ...dados, ...mq.meta, atualizado: dados.atualizado || mq.meta.atualizado, conta: minhaOuEquipe(mq.meta.dono) ? conta() : 'equipe:' + mq.meta.dono };
   delete m.dados; m.pendente = false; m.nuvemEm = mq.meta.atualizado; if (m.conta === conta()) await localPor(m); return m;
 }
 const sinc = { trabalhando: 0, pendentes: 0, erro: false, ultima: null };
@@ -161,7 +163,7 @@ export function sincronizar() {
     const r = await api('listar'); if (!r.ok) { sinc.erro = true; tentarDeNovo(); return; }
     const locais = new Map((await localTodas()).map((m) => [m.id, m])), naNuvem = new Set(), mudaram = [];
     for (const s of r.maquetes) {
-      if (s.dono !== conta()) continue; naNuvem.add(s.id); const l = locais.get(s.id);
+      if (!minhaOuEquipe(s.dono)) continue; naNuvem.add(s.id); const l = locais.get(s.id);
       if (!l || mudouNaNuvem(l, s)) { const a = await api('abrir', { id: s.id }); if (a.ok && a.maquete) { const n = await daNuvem(a.maquete); if (!l || n.atualizado !== l.atualizado) mudaram.push(s.id); } }
     }
     for (const l of locais.values()) if (l.nuvemEm && !l.pendente && !naNuvem.has(l.id)) { await localTira(l.id); mudaram.push(l.id); }
@@ -209,5 +211,5 @@ export async function duplicar(m, nome) {
   const c = JSON.parse(JSON.stringify(m)); c.id = novoId(); c.nome = nome || m.nome + ' (cópia)'; c.criado = new Date().toISOString(); c.dono = conta(); c.donoNome = estado.usuario?.nome || '';
   await salvar(c); return c;
 }
-export const ehMinha = (m) => !estado.visitante && (!estado.usuario || !m.dono || m.dono === conta() || m.dono === 'local');
+export const ehMinha = (m) => !estado.visitante && (!estado.usuario || !m.dono || m.dono === conta() || m.dono === 'local' || m.dono === 'equipe');
 export const podeEditar = (m) => !estado.visitante && (ehMinha(m) || estado.usuario?.papel === 'admin');

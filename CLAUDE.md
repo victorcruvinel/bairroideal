@@ -76,8 +76,16 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Evento `nuvem-mudou` ({ids}): o início recarrega a lista; o editor aberto troca pela versão nova se não tiver mudanças (senão avisa).
 - Teste novo: `node test/dois-aparelhos.mjs` (porta 8094, planilha falsa; computador + iPad na mesma conta: nome, peças, sem internet, apagar). Se um teste com servidor ficar travado, `pkill -f "servidor.mjs 809"`.
 
+## Rodada 11 (18/11): conta do desenvolvedor invisível
+- `ADMIN_EMAIL` (hello@victorcruvinel.dev) = conta do **desenvolvedor**, invisível para os outros (`ehDev_` no Codigo.gs, `VENDO_` = quem pede): não aparece em Pessoas (`listarPessoas_` filtra), não pode ser removida nem perder o admin (`nao_achou`), convite que ela manda chega como "Você foi convidado(a) para o Bairro Ideal" (sem nome) e `convidadoPor` fica vazio.
+- Maquetes dela aparecem para os outros com `dono: 'equipe'` e `donoNome: 'Equipe Bairro Ideal'` (visitante: vazio). São **da equipe**: entram em "Minhas maquetes" de quem entra (`minhaOuEquipe` em dados.js) e qualquer pessoa da conta pode editar/apagar (servidor libera `ehDev_(r.dono)`).
+- `eu` devolve `dev: true` para ela; a tela Pessoas mostra o aviso "Sua conta é invisível".
+- Convite com 2 cartões: 🎨 Usuário(a) (faz tudo nas maquetes, não cria contas) e ⭐ Administrador(a) (também convida/cria contas).
+- **Precisa atualizar o Apps Script** (colar o Codigo.gs novo e publicar nova versão, ver README "Quando mudar o Codigo.gs"); sem isso a conta continua aparecendo.
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 10. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos).
+Última publicação: Rodada 11. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos).
+0. **Victor precisa colar o Codigo.gs novo no Apps Script e publicar nova versão** (Rodada 11: conta invisível). Conferir com ele.
 1. Conferir o build do Cloudflare do último commit (a rede desta sessão bloqueava o site; pedir ao Victor olhar no painel).
 2. No print do Victor (iPad) a logo ainda era a antiga: conferir se a versão nova chegou (fechar e abrir o app; o ícone instalado pode exigir reinstalar).
 3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
