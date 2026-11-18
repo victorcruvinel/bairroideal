@@ -19,6 +19,7 @@ function cenaAbertura() {
 const ease = (t) => 1 - Math.pow(1 - t, 3);
 const quica = (t) => { const n = 7.5625, d = 2.75; if (t < 1 / d) return n * t * t; if (t < 2 / d) return n * (t -= 1.5 / d) * t + .75; if (t < 2.5 / d) return n * (t -= 2.25 / d) * t + .9375; return n * (t -= 2.625 / d) * t + .984375; };
 const lim = (v) => Math.max(0, Math.min(1, v));
+const V = 1.6; // velocidade da abertura (1 = original, ~3,9 s; 1,6 = ~2,4 s)
 
 export function abertura() {
   const caixa = document.getElementById('abertura'); if (!caixa) return Promise.resolve();
@@ -32,11 +33,12 @@ export function abertura() {
     let W = 0, H = 0, fim = false; const t0 = performance.now();
     const medir = () => { const d = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
     medir(); addEventListener('resize', medir);
-    caixa.querySelectorAll('.abertura-nome span').forEach((s, i) => { s.style.animationDelay = (curta ? 0 : 1.55 + i * .06) + 's'; });
+    caixa.querySelectorAll('.abertura-nome span').forEach((s, i) => { s.style.animationDelay = (curta ? 0 : (1.55 + i * .06) / V) + 's'; });
+    for (const [sel, atraso] of [['.abertura-sub', 2.1], ['.abertura-por', 1.95]]) { const x = caixa.querySelector(sel); if (x) x.style.animationDelay = (curta ? 0 : atraso / V) + 's'; }
     caixa.classList.add('anima');
 
     function quadro(agora) {
-      if (fim) return; const t = curta ? 9 : (agora - t0) / 1000;
+      if (fim) return; const t = curta ? 9 : (agora - t0) / 1000 * V;
       ctx.clearRect(0, 0, W, H);
       // sol nascendo
       const sx = W * .8, sy = H * .2 + (1 - ease(lim(t / 1.6))) * H * .25;
@@ -71,6 +73,6 @@ export function abertura() {
       setTimeout(() => { caixa.remove(); }, 650); pronto();
     };
     caixa.addEventListener('click', terminar);
-    setTimeout(terminar, curta ? 900 : 3900);
+    setTimeout(terminar, curta ? 900 : Math.round(3900 / V));
   });
 }

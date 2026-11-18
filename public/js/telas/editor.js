@@ -275,7 +275,9 @@ export async function montar(app, [id]) {
     juntarTexto(); clearTimeout(salvarTimer); if (!pendente || !edita) return true; if (salvando) { await new Promise((r) => setTimeout(r, 300)); return gravar(); }
     salvando = true; pendente = false; mostrarSelo('salvando', 'Salvando…');
     try {
-      await salvar(prepararParaSalvar(m)); apagarRascunho();
+      await salvar(prepararParaSalvar(m));
+      if (pendente) { mostrarSelo('mudou', 'Salvar'); guardarRascunho(); return true; } // mexeu enquanto salvava: o que mudou depois continua para salvar
+      apagarRascunho();
       if (estado.nuvem && estado.sessao) mostrarSelo(navigator.onLine ? 'nuvem' : 'aparelho', navigator.onLine ? 'Enviando…' : 'No aparelho'); else mostrarSelo('salvo', 'Salvo');
       return true;
     } catch (e) { mostrarSelo('erro', 'Não salvou'); pendente = true; guardarRascunho(); console.error(e); aviso('⚠️ Não consegui salvar agora. Suas mudanças ficaram no rascunho.', 'erro', 3500); return false; }

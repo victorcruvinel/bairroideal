@@ -100,8 +100,17 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Medido com a nuvem demorando 3 s: abrir maquete 0,1–0,2 s; voltar ao início < 0,05 s. Passeio 3D ~1,3 s (montar a cena).
 - `test/servidor.mjs` aceita `--lento=3000` (nuvem lenta). Teste novo: `node test/rapido.mjs` (porta 8096).
 
+## Rodada 15 (18/11): revisão completa de abrir e salvar
+- App abre sem esperar a internet: `/versao.json` com limite de 3 s (usa o último valor guardado); conta (`eu`) conferida por trás; service worker: página da internet só se chegar em 2,5 s, senão a guardada (a nova fica para a próxima).
+- Abertura animada mais curta: `V = 1.6` em abertura.js (~2,4 s; continua pulável).
+- Toda maquete aberta fica guardada no aparelho (também as da equipe e, no modo visitante, as da exposição) e abre na hora; a nuvem confere por trás (`sincronizar` para as minhas, `conferirUma` para as de outros/visitante) e avisa `nuvem-mudou` se mudou.
+- Exposição (visitante): mostra na hora as já vistas neste aparelho e completa com a nuvem por trás.
+- Admin que edita maquete de outra pessoa: a cópia local não duplica em "Minhas" (vai para "equipe").
+- Salvar: se ela mexer enquanto salva, o botão continua "Salvar" e o rascunho guarda o que mudou depois.
+- Medido (nuvem demorando 3 s): abrir maquete 0,1–0,2 s · voltar ao início < 0,05 s · criar maquete 0,6 s · salvar 0,07 s · abrir o app ~2,9 s (com a animação). `test/rapido.mjs` cobre criar → colocar → salvar → sair → abrir e confere que chegou na nuvem.
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 14 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo, tutorial, rapido).
+Última publicação: Rodada 15 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo, tutorial, rapido).
 1. Conferir com o Victor se o build do Cloudflare de 3235b58 deu "success" (nesta sessão a rede bloqueava o site e não havia ferramenta para ver os checks).
 2. Perguntar se abrir ficou rápido no iPad. Perguntar o que ele achou do jeito novo de colocar peça (✓) e do tutorial. Perguntar se o carregando do 3D voltou a travar (se sim, pedir print e o que estava fazendo). Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
 3. Quando ele convidar a professora: ver se o e-mail chegou sem o nome dele e se ela vê as maquetes de exemplo como "da equipe" e consegue editar.

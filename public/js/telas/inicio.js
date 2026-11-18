@@ -139,14 +139,21 @@ async function exposicao(app) {
     try { localStorage.setItem('bi:exemplos', '1'); } catch { /* */ }
     estado.visitante = false; for (const id of ['carente', 'ideal']) await salvar(prepararParaSalvar(MODELOS.find((x) => x.id === id).criar())); estado.visitante = true;
   }
-  const { equipe } = await listar(); const g = tela.querySelector('#expo');
-  g.innerHTML = equipe.length ? equipe.map((m) => `<div class="cartao-m cartao-expo" role="button" tabindex="0" data-id="${m.id}">
-      <div class="th">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<span class="vazio">🗺️</span>'}</div>
-      <div class="info"><b>${esc(m.nome)}</b><small>${m.cidade ? '📍 ' + esc(m.cidade) + ' · ' : ''}${num(m.pecas)} peças${m.donoNome ? ' · por ' + esc(m.donoNome.split(' ')[0]) : ''}</small>
-      <div class="linha">${chipTipo(m.tipo)}<span class="nota" style="color:${corNota(m.nota)}">${notaTxt(m.nota)}</span></div>
-      <div class="expo-b"><button class="bt" data-v="ver">🧊 Ver</button><button class="bt" data-v="comp" title="Compartilhar">📤</button><button class="bt" data-v="historia">📖 História</button><button class="bt" data-v="passeio">🚶 Passear</button></div></div></div>`).join('')
-    : `<div class="vazio-lista" style="grid-column:1/-1">Ainda não há maquetes na exposição${navigator.onLine ? '' : ' (e o aparelho está sem internet)'}.</div>`;
-  tela.querySelector('#tour').disabled = !equipe.length;
+  // mostra na hora as que já foram vistas neste aparelho; a lista da nuvem chega por trás e redesenha
+  let equipe = []; const g = tela.querySelector('#expo');
+  function desenharExpo(lista, final) {
+    equipe = lista; if (!tela.isConnected) return;
+    if (!equipe.length && !final) return; // ainda carregando da nuvem: fica o "Carregando a exposição…"
+    g.innerHTML = equipe.length ? equipe.map((m) => `<div class="cartao-m cartao-expo" role="button" tabindex="0" data-id="${m.id}">
+        <div class="th">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<span class="vazio">🗺️</span>'}</div>
+        <div class="info"><b>${esc(m.nome)}</b><small>${m.cidade ? '📍 ' + esc(m.cidade) + ' · ' : ''}${num(m.pecas)} peças${m.donoNome ? ' · por ' + esc(m.donoNome.split(' ')[0]) : ''}</small>
+        <div class="linha">${chipTipo(m.tipo)}<span class="nota" style="color:${corNota(m.nota)}">${notaTxt(m.nota)}</span></div>
+        <div class="expo-b"><button class="bt" data-v="ver">🧊 Ver</button><button class="bt" data-v="comp" title="Compartilhar">📤</button><button class="bt" data-v="historia">📖 História</button><button class="bt" data-v="passeio">🚶 Passear</button></div></div></div>`).join('')
+      : `<div class="vazio-lista" style="grid-column:1/-1">Ainda não há maquetes na exposição${navigator.onLine ? '' : ' (e o aparelho está sem internet)'}.</div>`;
+    tela.querySelector('#tour').disabled = !equipe.length;
+  }
+  const guardadas = await listar({ soAparelho: true }); desenharExpo(guardadas.equipe, !estado.nuvem);
+  if (estado.nuvem) listar().then((r) => desenharExpo(r.equipe, true));
   tela.querySelector('#expo2').onclick = async () => (await import('../compartilhar.js')).compartilharSite();
   ligarInstalar(tela.querySelector('#inst2'));
   tela.querySelector('#tour').onclick = () => { try { sessionStorage.setItem('bi:tour', JSON.stringify(equipe.map((m) => m.id))); } catch { /* */ } location.hash = '#/m/' + equipe[0].id + '/historia'; };

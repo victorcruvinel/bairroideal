@@ -37,12 +37,18 @@ self.addEventListener('fetch', (e) => {
   // páginas: tenta a internet primeiro (pega sempre a versão nova); sem internet, usa a guardada
   if (req.mode === 'navigate') {
     // não dá para mudar opções de um pedido de navegação: pede de novo só pelo endereço, sem cache
+    // internet fraca: se a página não chegar em 2,5 s, abre a guardada (a nova fica guardada para a próxima vez)
+    const daRede = fetch(url.href, { cache: 'no-store', credentials: 'same-origin' }).then(limpa).then((r) => {
+      if (r.ok && url.pathname === '/') { const cp = r.clone(); caches.open(CACHE).then((c) => c.put('/', cp)); }
+      return r;
+    });
+    e.waitUntil(daRede.catch(() => {}));
     e.respondWith((async () => {
-      try {
-        const r = await limpa(await fetch(url.href, { cache: 'no-store', credentials: 'same-origin' }));
-        if (r.ok && url.pathname === '/') { const cp = r.clone(); caches.open(CACHE).then((c) => c.put('/', cp)); }
-        return r;
-      } catch { return (await caches.match('/')) || new Response('Sem internet e o app ainda não foi guardado neste aparelho.', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } }); }
+      const guardada = await caches.match('/');
+      const semInternet = () => guardada || new Response('Sem internet e o app ainda não foi guardado neste aparelho.', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+      if (!guardada) { try { return await daRede; } catch { return semInternet(); } }
+      const espera = new Promise((ok) => setTimeout(() => ok(null), 2500));
+      try { const r = await Promise.race([daRede, espera]); return r && r.ok ? r : guardada; } catch { return semInternet(); }
     })());
     return;
   }

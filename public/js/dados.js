@@ -61,7 +61,8 @@ export async function api(acao, dados = {}, { tempo = 25000 } = {}) {
 export async function iniciar() {
   try { estado.sessao = localStorage.getItem(CHAVE_SESSAO); estado.usuario = JSON.parse(localStorage.getItem('bi:usuario') || 'null'); } catch { /* */ }
   try {
-    const r = await fetch('/versao.json', { cache: 'no-store' }); const j = await r.json(); estado.nuvem = !!j.nuvem; estado.versao = j.versao;
+    const ctl = new AbortController(); const relogio = setTimeout(() => ctl.abort(), 3000); // sinal fraco: não segura a abertura
+    const r = await fetch('/versao.json', { cache: 'no-store', signal: ctl.signal }); const j = await r.json(); clearTimeout(relogio); estado.nuvem = !!j.nuvem; estado.versao = j.versao;
     try { localStorage.setItem('bi:nuvem', estado.nuvem ? '1' : '0'); } catch { /* */ }
   } catch { try { estado.nuvem = localStorage.getItem('bi:nuvem') === '1'; } catch { /* */ } }
   // confere a conta na nuvem: se já temos os dados guardados, confere POR TRÁS (o app abre na hora)
@@ -95,8 +96,10 @@ const resumo = (m) => ({ id: m.id, nome: m.nome, tipo: m.tipo, cidade: m.cidade 
 
 // lista: as minhas (aparelho + nuvem) e as da equipe (só nuvem)
 export async function listar({ soAparelho = false } = {}) {
-  if (estado.visitante) return listarVisitante();
-  const locais = await localTodas();
+  if (estado.visitante) return listarVisitante({ soAparelho });
+  const todasLocais = await localTodas();
+  const deOutro = (m) => m.dono && !minhaOuEquipe(m.dono) && m.dono !== 'local'; // admin editou maquete de outra pessoa
+  const locais = todasLocais.filter((m) => !deOutro(m));
   if (soAparelho) return { minhas: locais.map((m) => ({ ...resumo(m), pendente: !!m.pendente, local: true })).sort((a, b) => String(b.atualizado).localeCompare(String(a.atualizado))), equipe: [], soAparelho: true }; const mapa = new Map(locais.map((m) => [m.id, { ...resumo(m), pendente: !!m.pendente, nuvemEm: m.nuvemEm, local: true }]));
   let equipe = [];
   if (estado.nuvem && estado.sessao && navigator.onLine) {
@@ -105,6 +108,7 @@ export async function listar({ soAparelho = false } = {}) {
       if (minhaOuEquipe(s.dono)) { const l = mapa.get(s.id); if (!l || mudouNaNuvem(l, s)) mapa.set(s.id, { ...s, nuvem: true, local: !!l }); else l.nuvem = true; }
       else equipe.push({ ...s, nuvem: true });
     }
+    if (!r.ok) for (const l of todasLocais) if (deOutro(l)) equipe.push({ ...resumo(l), pendente: !!l.pendente, local: true });
     // apagada em outro aparelho: já esteve na nuvem, não tem nada para enviar e sumiu da lista
     if (r.ok) { const naNuvem = new Set(r.maquetes.map((x) => x.id)); for (const l of locais) if (l.nuvemEm && !l.pendente && !naNuvem.has(l.id)) { mapa.delete(l.id); localTira(l.id); } }
   }
@@ -112,17 +116,19 @@ export async function listar({ soAparelho = false } = {}) {
   return { minhas: [...mapa.values()].sort(ordem), equipe: equipe.sort(ordem) };
 }
 
-async function listarVisitante() {
+async function listarVisitante({ soAparelho = false } = {}) {
   const s = await loja('readonly'); const tudo = await pedir(s.getAll());
   const ordem = (a, b) => String(b.atualizado).localeCompare(String(a.atualizado));
   if (!estado.nuvem) return { minhas: [], equipe: tudo.filter((m) => m.conta === 'local' && m.publica !== false).map(resumo).sort(ordem) };
   const guardadas = tudo.filter((m) => m.conta === 'visitante');
+  if (soAparelho) return { minhas: [], equipe: guardadas.map(resumo).sort(ordem) }; // as que já foram vistas neste aparelho (abre na hora)
   if (navigator.onLine) { const r = await api('publico.listar'); if (r.ok) return { minhas: [], equipe: r.maquetes.sort(ordem) }; }
   return { minhas: [], equipe: guardadas.map(resumo).sort(ordem) }; // sem internet: as que já foram vistas
 }
 async function abrirVisitante(id) {
   const l = await localUma(id);
   if (!estado.nuvem) return l && l.publica !== false ? l : null;
+  if (l && l.conta === 'visitante') { if (navigator.onLine) setTimeout(() => conferirUma(id, 'publico.abrir'), 300); return l; }
   if (navigator.onLine) {
     const r = await api('publico.abrir', { id });
     if (r.ok) { const m = { ...JSON.parse(await descomprimir(r.maquete.dados)), ...r.maquete.meta, conta: 'visitante' }; if (!l || l.conta === 'visitante') await localPor(m); return m; }
@@ -134,7 +140,7 @@ export async function abrir(id) {
   if (estado.visitante) return abrirVisitante(id);
   const l = await localUma(id);
   // tem cópia no aparelho: abre NA HORA e confere a nuvem por trás (se mudou em outro aparelho, a tela se atualiza sozinha)
-  if (l) { if (estado.nuvem && estado.sessao) setTimeout(() => sincronizar(), 300); return l; }
+  if (l) { if (estado.nuvem && estado.sessao) setTimeout(() => (minhaOuEquipe(l.dono) || l.conta === conta() ? sincronizar() : conferirUma(id)), 300); return l; }
   // não tem cópia (ex.: primeira vez neste aparelho): aí precisa esperar a nuvem
   if (estado.nuvem && estado.sessao && navigator.onLine) {
     const r = await api('abrir', { id });
@@ -149,11 +155,21 @@ export async function abrir(id) {
 // "equipe" = maquete da conta invisível do desenvolvedor: todo mundo da conta pode mexer
 const minhaOuEquipe = (dono) => dono === conta() || dono === 'equipe';
 const mudouNaNuvem = (l, s) => !l.pendente && (l.nuvemEm ? String(s.atualizado) !== String(l.nuvemEm) : String(s.atualizado) > String(l.atualizado || ''));
+// confere UMA maquete (de outra pessoa da equipe) por trás; se mudou, guarda e avisa a tela aberta
+async function conferirUma(id, acao = 'abrir') {
+  const l = await localUma(id); const r = await api(acao, { id }); if (!r.ok || !r.maquete) return;
+  if (l && String(l.nuvemEm || '') === String(r.maquete.meta.atualizado)) return;
+  const n = acao === 'abrir' ? await daNuvem(r.maquete) : { ...JSON.parse(await descomprimir(r.maquete.dados)), ...r.maquete.meta, conta: 'visitante', nuvemEm: r.maquete.meta.atualizado };
+  if (acao !== 'abrir') await localPor(n);
+  if (l && n.atualizado !== l.atualizado) avisar({ tipo: 'nuvem-mudou', ids: [id] });
+}
 async function daNuvem(mq) {
   const dados = JSON.parse(await descomprimir(mq.dados));
   // "atualizado" de dentro dos dados é o carimbo de quem salvou (igual em todos os aparelhos); o da planilha pode vir em outro formato
   const m = { ...dados, ...mq.meta, atualizado: dados.atualizado || mq.meta.atualizado, conta: minhaOuEquipe(mq.meta.dono) ? conta() : 'equipe:' + mq.meta.dono };
-  delete m.dados; m.pendente = false; m.nuvemEm = mq.meta.atualizado; if (m.conta === conta()) await localPor(m); return m;
+  delete m.dados; m.pendente = false; m.nuvemEm = mq.meta.atualizado;
+  const l = await localUma(m.id); if (!(l && l.pendente)) await localPor(m); // guarda (também as da equipe: a próxima vez abre na hora)
+  return m;
 }
 const sinc = { trabalhando: 0, pendentes: 0, erro: false, ultima: null };
 export const estadoSinc = () => ({ ...sinc, online: navigator.onLine, ligado: !!(estado.nuvem && estado.sessao && !estado.visitante) });
