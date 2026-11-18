@@ -65,18 +65,26 @@ export async function montar(app) {
   tela.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('.cartao-m[data-id]')) location.hash = '#/m/' + e.target.dataset.id; });
 
   async function menu(botao) {
-    document.querySelector('.menu-flut')?.remove();
+    document.querySelector('.menu-flut')?.remove(); document.querySelector('.menu-fundo')?.remove();
     const id = botao.dataset.menu, resumo = [...lista.minhas, ...lista.equipe].find((m) => m.id === id); const minha = ehMinha(resumo);
-    const r = botao.getBoundingClientRect();
-    const mn = el(`<div class="menu-flut" style="top:${Math.min(r.bottom + 6, innerHeight - 330)}px;left:${Math.max(8, Math.min(r.right - 220, innerWidth - 230))}px">
+    const r = botao.getBoundingClientRect(), gaveta = innerWidth <= 600;
+    const mn = el(`<div class="menu-flut ${gaveta ? 'gaveta' : ''}" role="menu"><h4>${esc(resumo.nome)}</h4>
       <button data-a="abrir">✏️ ${minha ? 'Abrir e editar' : 'Abrir'}</button><button data-a="historia">📖 Apresentar história</button><button data-a="passeio">🚶 Passear dentro</button>
       <button data-a="compartilhar">📤 Compartilhar (WhatsApp / QR)</button><button data-a="comparar">⚖️ Comparar com…</button><button data-a="duplicar">📄 Duplicar</button>
       ${minha ? '<button data-a="renomear">🏷️ Renomear</button><button data-a="excluir" class="perigo">🗑️ Apagar</button>' : ''}</div>`);
+    const fundo = gaveta ? el('<div class="menu-fundo"></div>') : null; if (fundo) document.body.append(fundo);
     document.body.append(mn);
-    const fecha = (ev) => { if (!mn.contains(ev.target)) { mn.remove(); document.removeEventListener('pointerdown', fecha); } };
+    if (!gaveta) { // embaixo do botão; se não couber, abre para cima; nunca passa da tela
+      const h = mn.offsetHeight, w = mn.offsetWidth; let top = r.bottom + 6;
+      if (top + h > innerHeight - 8) { top = r.top - h - 6; mn.classList.add('pra-cima'); }
+      top = Math.max(8, Math.min(top, innerHeight - h - 8));
+      mn.style.top = top + 'px'; mn.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + 'px';
+    }
+    const fechar = () => { mn.remove(); fundo?.remove(); document.removeEventListener('pointerdown', fecha); };
+    const fecha = (ev) => { if (!mn.contains(ev.target)) fechar(); };
     setTimeout(() => document.addEventListener('pointerdown', fecha));
     mn.onclick = async (ev) => {
-      const a = ev.target.closest('[data-a]')?.dataset.a; if (!a) return; mn.remove();
+      const a = ev.target.closest('[data-a]')?.dataset.a; if (!a) return; fechar();
       if (a === 'abrir') location.hash = '#/m/' + id;
       if (a === 'historia') location.hash = '#/m/' + id + '/historia';
       if (a === 'passeio') location.hash = '#/m/' + id + '/passeio';

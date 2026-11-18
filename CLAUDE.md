@@ -57,10 +57,18 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - `protecao.js`: o bloqueio de toque duplo não vale mais para botões/canvas (engolia o 2º toque rápido). Botões com `touch-action: manipulation`.
 - `.ed { overflow: clip }`: o editor não rola mais (no iPad o painel escondido aparecia).
 
+## Rodada 8 (18/11): salvar de verdade, desfazer/refazer, menu do cartão
+- **Salvar**: o editor NÃO salva mais sozinho na maquete. Cada mudança vira rascunho no aparelho (`localStorage` `bi:rascunho:<id>`, 0,7 s depois); a maquete/nuvem só muda no botão **💾 Salvar** (topo, fica amarelo pulsando quando falta salvar; Ctrl+S).
+- Sair com mudanças (‹, início, Passear, História, Comparar…): janela "Você ainda não salvou" com 💾 Salvar / 📝 Guardar rascunho / 🗑️ Descartar (confirma); ✕ = continuar editando (`perguntarSaida` no editor, chamado pelo router).
+- Abrir maquete com rascunho: pergunta "Continuar o rascunho" ou "Abrir a versão salva" (avisa se a versão salva é mais nova).
+- Atualização forçada do app: guarda rascunho sem perguntar (`guardarRascunho`), e ele aparece ao reabrir.
+- Desfazer/refazer: ícones SVG (seta curva) num botão duplo `.ed-hist`; no celular aparecem os dois. Compartilhar no celular foi para a aba Sobre (📊).
+- Menu ⋯ do cartão (inicio.js): mede a altura, abre para cima se não couber, nunca sai da tela; no celular (≤600) vira gaveta de baixo com fundo escuro.
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 7. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
+Última publicação: Rodada 8. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
 1. Conferir o build do Cloudflare do último commit (a rede desta sessão bloqueava o site; pedir ao Victor olhar no painel).
-2. Victor testar no iPhone/iPad: ícone instalado (talvez precise remover e instalar de novo para o ícone mudar), Tocar, gaveta de peças, menu Ver.
+2. No print do Victor (iPad) a logo ainda era a antiga: conferir se a versão nova chegou (fechar e abrir o app; o ícone instalado pode exigir reinstalar).
 3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
 
 ## Infra

@@ -61,7 +61,8 @@ aoMudar((ev) => {
 
 // atualização forçada (service worker por versão + conferência a cada minuto). Antes de recarregar, salva a maquete aberta.
 iniciarAtualizacoes();
-aoAtualizar(async () => { if (atual && atual.perguntarSaida && atual.temMudancas && atual.temMudancas()) await atual.perguntarSaida(); });
+// na atualização não dá para perguntar: o editor guarda um rascunho, que aparece quando a maquete abrir de novo
+aoAtualizar(async () => { if (atual && atual.temMudancas && atual.temMudancas()) { if (atual.guardarRascunho) atual.guardarRascunho(); else if (atual.perguntarSaida) await atual.perguntarSaida(); } });
 
 await Promise.all([abertura(), iniciar()]);
 // link compartilhado /v/ID: abre a maquete (quem não entrou vira visitante)

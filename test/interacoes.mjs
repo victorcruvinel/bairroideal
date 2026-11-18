@@ -68,9 +68,28 @@ await p.click('.ed-f[data-f=tocar]'); const n9 = await p.evaluate(() => window._
 assert.equal(await p.evaluate(() => window.__pecas()), n9, 'Tocar não coloca peça');
 assert.ok(await p.isVisible('.ed-sel'), 'janelinha da peça abriu');
 if (FOTOS) await p.screenshot({ path: FOTOS + '/09-teste-montado.png' });
-// salvou sozinho
-await p.waitForTimeout(1800);
+// tem mudança não salva: o botão Salvar fica amarelo e sair pergunta
+assert.equal(await p.getAttribute('.ed-salvo', 'data-e'), 'mudou', 'mostra que falta salvar');
+await p.waitForTimeout(900);
+assert.ok(await p.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith('bi:rascunho:'))), 'rascunho guardado sozinho');
+await p.click('.ed-topo a[href="#/"]'); await p.waitForSelector('.janela-sair');
+if (FOTOS) await p.screenshot({ path: FOTOS + '/60-sair-sem-salvar.png' });
+await p.click('.janela-x'); await p.waitForTimeout(300); // continuar editando
+assert.ok(await p.isVisible('.ed-mapa'), 'continuou no editor');
+await p.click('[data-a=salvar]'); await p.waitForTimeout(600);
 assert.match(await p.textContent('.ed-salvo'), /Salvo/);
+assert.ok(!(await p.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith('bi:rascunho:')))), 'salvar apaga o rascunho');
+await p.click('.ed-topo a[href="#/"]'); await p.waitForSelector('.cartao-m[data-id]', { timeout: 5000 }); // salvo: sai sem perguntar
+// mudar de novo e guardar como rascunho; ao abrir, oferece continuar
+await p.locator('.cartao-m[data-id]', { hasText: 'Bairro do teste' }).first().click(); await p.waitForSelector('.ed-mapa'); await p.waitForTimeout(600);
+await p.click('.ed-f[data-f=apagar]'); a = await cel(1, 4); await p.mouse.click(a[0], a[1] - 8); await p.waitForTimeout(300);
+const casasAntes = await num('casas');
+await p.click('.ed-topo a[href="#/"]'); await p.waitForSelector('.janela-sair'); await p.click('.janela-sair .bt--leve'); await p.waitForSelector('.cartao-m[data-id]');
+await p.locator('.cartao-m[data-id]', { hasText: 'Bairro do teste' }).first().click(); await p.waitForSelector('.janela-sair', { timeout: 5000 });
+if (FOTOS) await p.screenshot({ path: FOTOS + '/61-rascunho.png' });
+await p.click('.janela-sair .bt--sol'); await p.waitForTimeout(500);
+assert.equal(await num('casas'), casasAntes, 'rascunho voltou com a casa apagada');
+await p.click('[data-a=salvar]'); await p.waitForTimeout(500);
 assert.deepEqual(erros, []);
 console.log('✔ interações do editor ok');
 await b.close();

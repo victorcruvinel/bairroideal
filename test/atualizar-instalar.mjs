@@ -14,6 +14,7 @@ try {
   await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); // como se a pessoa voltasse para o app
   await p.waitForSelector('.carregando', { timeout: 5000 }); if (FOTOS) await p.screenshot({ path: FOTOS + '/47-atualizando.png' });
   await p.waitForNavigation({ timeout: 8000 }); await p.waitForSelector('.ed-mapa', { timeout: 15000 });
+  await p.waitForSelector('.janela-sair', { timeout: 8000 }); await p.click('.janela-sair .bt--sol'); await p.waitForTimeout(400); // continuar o rascunho
   assert.match(await p.textContent('.ed-nome b'), /Nome antes da atualização/, 'salvou antes de recarregar');
   console.log('✔ versão nova: recarregou sozinho e não perdeu o que estava sendo editado');
   // 2) iPhone: convite para instalar com o passo a passo

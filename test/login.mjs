@@ -30,7 +30,7 @@ try {
   if (FOTOS) await p.screenshot({ path: FOTOS + '/17-pessoas.png' });
   // editar uma maquete e conferir que sobe
   await p.evaluate(() => { location.hash = '#/'; }); await p.waitForSelector('.cartao-m[data-id]'); await p.locator('.cartao-m[data-id]').first().click(); await p.waitForSelector('.ed-mapa');
-  await p.click('[data-aba=sobre]'); await p.fill('.ed-aba-c [name=nome]', 'Vila Nova Esperança'); await p.waitForTimeout(3500);
+  await p.click('[data-aba=sobre]'); await p.fill('.ed-aba-c [name=nome]', 'Vila Nova Esperança'); await p.waitForTimeout(500); await p.click('[data-a=salvar]'); await p.waitForTimeout(3000);
   assert.match(await p.textContent('.ed-salvo'), /nuvem/);
   // sair
   await p.evaluate(() => { location.hash = '#/'; }); await p.waitForSelector('.avatar'); await p.click('.avatar'); await p.click('.janela .bt--perigo'); await p.waitForTimeout(800);

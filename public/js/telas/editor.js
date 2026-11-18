@@ -17,6 +17,10 @@ const FERRAMENTAS = [
   ['apagar', '🧽', 'Apagar', 'Toque numa peça para tirar. Tocando no chão pintado, ele volta a ser grama', '🧽 Toque numa peça para tirar'],
   ['terreno', '📐', 'Terreno', 'Use as setas para aumentar (＋) ou diminuir (－) o terreno. Arraste no mapa para escolher só uma parte e fazer um L', '📐 Use as setas ＋ e －'],
 ];
+// seta curva (desfazer); o refazer é a mesma seta espelhada pelo CSS
+const ICONE_VOLTAR = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const CHAVE_RASCUNHO = (id) => 'bi:rascunho:' + id;
+const quando = (t) => new Date(t).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às');
 // o que dá para mostrar ou esconder no mapa (menu 👁️ Ver)
 const CAMADAS = [['grade', '▦', 'Grade', 'Linhas em volta de cada quadradinho'], ['regua', '📏', 'Régua', 'Mede a distância entre dois pontos'], ['eixos', '📊', 'Plano cartesiano', 'Eixos x e y com os números'], ['noite', '🌙', 'Noite', 'Mostra onde tem iluminação']];
 const sem = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -45,8 +49,8 @@ export async function montar(app, [id]) {
         <button data-modo="passeio">🚶 <span>Passear</span></button><button data-modo="historia">📖 <span>História</span></button><button data-modo="comparar">⚖️ <span>Comparar</span></button>
       </nav>
       <div class="ed-acoes">
-        ${edita ? '<button class="redondo" data-a="desfazer" title="Desfazer (Ctrl+Z)">↶</button><button class="redondo" data-a="refazer" title="Refazer">↷</button>' : ''}
-        <span class="ed-salvo" title="Tudo é salvo sozinho">✓ Salvo</span>
+        ${edita ? `<div class="ed-hist" role="group" aria-label="Desfazer e refazer"><button data-a="desfazer" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">${ICONE_VOLTAR}</button><button data-a="refazer" title="Refazer (Ctrl+Y)" aria-label="Refazer">${ICONE_VOLTAR}</button></div>
+        <button class="ed-salvo" data-a="salvar" title="Salvar (Ctrl+S)"><span class="ed-salvo-i">✓</span><span class="ed-salvo-t">Salvo</span></button>` : ''}
         <button class="redondo" data-a="compartilhar" title="Compartilhar (WhatsApp e QR Code)">📤</button>
         <button class="redondo ed-bt-painel" data-a="painel" title="Informações do bairro">📊</button>
       </div>
@@ -237,23 +241,53 @@ export async function montar(app, [id]) {
   }
   function botoesHist() { const a = ed.querySelector('[data-a=desfazer]'), b = ed.querySelector('[data-a=refazer]'); if (a) a.disabled = !desfazer.length; if (b) b.disabled = !refazer.length; }
 
-  // ------------------------------------------------ salvar (sozinho, 1,2 s depois da última mudança)
+  // ------------------------------------------------ salvar
+  // Cada mudança vira um RASCUNHO guardado sozinho no aparelho (nada se perde, nem se a bateria acabar).
+  // A maquete de verdade (e a nuvem) só muda quando ela toca em 💾 Salvar. Ao sair com mudanças, o app pergunta.
   const selo = $('.ed-salvo');
-  function mudou() {
-    pendente = true; selo.textContent = '✏️ Editando…'; selo.className = 'ed-salvo';
-    clearTimeout(salvarTimer); salvarTimer = setTimeout(gravar, 1200); reanalisar();
+  function mostrarSelo(estadoSelo, texto) {
+    if (!selo) return; selo.dataset.e = estadoSelo;
+    const icones = { salvo: '✓', mudou: '💾', salvando: '⏳', nuvem: '☁️', aparelho: '📦', erro: '⚠️' };
+    selo.querySelector('.ed-salvo-i').textContent = icones[estadoSelo] || '✓'; selo.querySelector('.ed-salvo-t').textContent = texto;
+    selo.title = estadoSelo === 'mudou' ? 'Tem mudanças que ainda não foram salvas. Toque para salvar (Ctrl+S)' : estadoSelo === 'aparelho' ? 'Salvo no aparelho; vai para a nuvem quando a internet voltar' : 'Salvar (Ctrl+S)';
   }
+  function mudou() {
+    pendente = true; mostrarSelo('mudou', 'Salvar'); reanalisar();
+    clearTimeout(salvarTimer); salvarTimer = setTimeout(guardarRascunho, 700);
+  }
+  function guardarRascunho() {
+    clearTimeout(salvarTimer); if (!edita || !pendente) return;
+    try { localStorage.setItem(CHAVE_RASCUNHO(m.id), JSON.stringify({ quando: Date.now(), base: m.atualizado || null, m })); } catch (e) { console.warn('rascunho não coube', e); }
+  }
+  const apagarRascunho = () => { try { localStorage.removeItem(CHAVE_RASCUNHO(m.id)); } catch { /* */ } };
+  function juntarTexto() { if (textoPendente) { clearTimeout(textoTimer); textoPendente = false; pendente = true; } }
   async function gravar() {
-    clearTimeout(salvarTimer); if (!pendente || !edita) return; if (salvando) { salvarTimer = setTimeout(gravar, 400); return; }
-    salvando = true; pendente = false; selo.textContent = '💾 Salvando…';
-    try { await salvar(prepararParaSalvar(m)); selo.textContent = estado.nuvem && estado.sessao ? (navigator.onLine ? '☁️ Enviando…' : '📦 Salvo no aparelho') : '✓ Salvo'; }
-    catch (e) { selo.textContent = '⚠️ Não salvou'; selo.className = 'ed-salvo erro'; pendente = true; console.error(e); }
-    salvando = false;
+    juntarTexto(); clearTimeout(salvarTimer); if (!pendente || !edita) return true; if (salvando) { await new Promise((r) => setTimeout(r, 300)); return gravar(); }
+    salvando = true; pendente = false; mostrarSelo('salvando', 'Salvando…');
+    try {
+      await salvar(prepararParaSalvar(m)); apagarRascunho();
+      if (estado.nuvem && estado.sessao) mostrarSelo(navigator.onLine ? 'nuvem' : 'aparelho', navigator.onLine ? 'Enviando…' : 'No aparelho'); else mostrarSelo('salvo', 'Salvo');
+      return true;
+    } catch (e) { mostrarSelo('erro', 'Não salvou'); pendente = true; guardarRascunho(); console.error(e); aviso('⚠️ Não consegui salvar agora. Suas mudanças ficaram no rascunho.', 'erro', 3500); return false; }
+    finally { salvando = false; }
+  }
+  // janela ao sair com mudanças: Salvar / Guardar rascunho / Descartar / Continuar editando
+  async function perguntarSaida() {
+    juntarTexto(); if (!pendente || !edita) return true;
+    document.querySelectorAll('.avisos .aviso').forEach((x) => x.remove()); // nada por cima da janela
+    const r = await janela({ titulo: '💾 Você ainda não salvou', classe: 'janela-sair',
+      corpo: `<p class="sair-p">As mudanças em <b>${esc(m.nome)}</b> ainda não foram salvas. O que você quer fazer?</p>
+        <ul class="sair-l"><li><b>💾 Salvar</b> guarda tudo na maquete${estado.nuvem && estado.sessao ? ' e na nuvem' : ''}.</li><li><b>📝 Rascunho</b> guarda só neste aparelho, para continuar depois.</li><li><b>🗑️ Descartar</b> volta para a última versão salva.</li></ul>`,
+      botoes: [{ texto: '🗑️ Descartar', classe: 'bt--perigo-leve', valor: 'descartar' }, { texto: '📝 Guardar rascunho', classe: 'bt--leve', valor: 'rascunho' }, { texto: '💾 Salvar', classe: 'bt--sol', valor: 'salvar' }] });
+    if (r === 'salvar') return gravar();
+    if (r === 'rascunho') { guardarRascunho(); pendente = false; aviso('📝 Rascunho guardado neste aparelho. Ele aparece quando você abrir a maquete de novo.', 'ok', 3200); return true; }
+    if (r === 'descartar') { if (!(await confirmar('Descartar as mudanças?', 'Tudo o que você mudou desde o último <b>Salvar</b> vai sumir.', 'Descartar'))) return false; apagarRascunho(); pendente = false; return true; }
+    return false; // fechou a janela = continua editando
   }
   const desligarDados = aoMudar((ev) => {
     if (ev.id !== m.id) return;
-    if (ev.tipo === 'salvo' && ev.nuvem && !pendente) { selo.textContent = '☁️ Salvo na nuvem'; selo.className = 'ed-salvo'; }
-    if (ev.tipo === 'erro_nuvem') { selo.textContent = '📦 Salvo no aparelho'; selo.title = 'Vai para a nuvem quando a internet voltar'; }
+    if (ev.tipo === 'salvo' && ev.nuvem && !pendente) mostrarSelo('nuvem', 'Salvo na nuvem');
+    if (ev.tipo === 'erro_nuvem' && !pendente) mostrarSelo('aparelho', 'No aparelho');
   });
 
   // ------------------------------------------------ ações no mapa
@@ -430,6 +464,7 @@ export async function montar(app, [id]) {
     if (e.target.closest('input, textarea')) return; const k = e.key.toLowerCase();
     if (k === ' ') { espaco = true; cv.style.cursor = 'grab'; e.preventDefault(); return; }
     if ((e.metaKey || e.ctrlKey) && k === 'z') { e.preventDefault(); e.shiftKey ? voltar(refazer, desfazer) : voltar(desfazer, refazer); return; }
+    if ((e.metaKey || e.ctrlKey) && k === 's') { e.preventDefault(); if (pendente && edita) gravar().then((ok) => ok && aviso('💾 Salvo!')); return; }
     if ((e.metaKey || e.ctrlKey) && k === 'y') { e.preventDefault(); voltar(refazer, desfazer); return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (k === 'r') { if (S.sel) girarSel(); else { S.rot = (S.rot + 1) % 4; pedir(); } }
@@ -513,13 +548,14 @@ export async function montar(app, [id]) {
     const md = e.target.closest('.ed-modos [data-modo]');
     if (md) {
       const v = md.dataset.modo; if (v === '3d' || v === 'planta') return trocarVista(v === 'planta');
-      await gravar(); if (v === 'comparar') location.hash = '#/comparar/' + m.id; else location.hash = '#/m/' + m.id + '/' + v; return;
+      if (v === 'comparar') location.hash = '#/comparar/' + m.id; else location.hash = '#/m/' + m.id + '/' + v; return;
     }
     const a = e.target.closest('[data-a]')?.dataset.a; if (!a) return;
     if (a === 'desfazer') voltar(desfazer, refazer); if (a === 'refazer') voltar(refazer, desfazer);
     if (a === 'girar') girarVista(1); if (a === 'mais') zoom(1.25); if (a === 'menos') zoom(1 / 1.25); if (a === 'tudo') enquadrarTudo(); if (a === 'noite') alternarNoite();
     if (a === 'crescer') crescer();
-    if (a === 'compartilhar') { await gravar(); const { compartilhar } = await import('../compartilhar.js'); compartilhar(m, () => { if (S.aba === 'sobre') desenharAba(); }); }
+    if (a === 'salvar') { if (!pendente) aviso('✓ Já está tudo salvo'); else if (await gravar()) aviso('💾 Salvo!'); }
+    if (a === 'compartilhar') { if (pendente && !(await gravar())) return; /* compartilha a versão salva */ const { compartilhar } = await import('../compartilhar.js'); compartilhar(m, () => { if (S.aba === 'sobre') desenharAba(); }); }
     if (a === 'ver') { const abrir = verEl.classList.contains('esconde'); verEl.classList.toggle('esconde', !abrir); $('.ed-bt-ver').setAttribute('aria-expanded', abrir); atualizarVer(); }
     if (a === 'grade') { S.grade = !S.grade; guardarPref(); atualizarVer(); pedir(); }
     if (a === 'encolher') { ed.classList.toggle('doca-mini'); requestAnimationFrame(medirDoca); }
@@ -558,6 +594,7 @@ export async function montar(app, [id]) {
     const b = e.target.closest('.pc'); if (!b) return;
     if (S.peca === b.dataset.id && S.ferr === 'colocar') { S.peca = null; } else { S.peca = b.dataset.id; S.cor = 0; }
     if (S.ferr !== 'colocar') escolherFerr('colocar');
+    if (S.peca) { avisoFerr?.remove(); avisoFerr = null; } // já escolheu: a dica "escolha uma peça" some
     S.sel = null; esconderSel(); desenharPecas(); pedir();
     if (celular() && S.peca) { ed.classList.add('doca-mini'); requestAnimationFrame(medirDoca); } // no celular a gaveta encolhe para mostrar o mapa
   });
@@ -588,7 +625,8 @@ export async function montar(app, [id]) {
         <ul class="metas">${a.metas.map((x) => `<li class="${x.ok ? 'ok' : ''}"><i>${x.ok ? '✓' : ''}</i>${esc(x.texto)}${x.prog != null && !x.ok ? ` <small>(${Math.round(x.prog * 10)}/10)</small>` : ''}</li>`).join('')}</ul>
         <p class="ed-p">As metas mostram o que um <b>bairro ideal</b> precisa ter. No bairro carente, elas ajudam a explicar o que está faltando.</p>`;
     } else if (S.aba === 'sobre') {
-      abaC.innerHTML = `<label class="campo">Nome do bairro<input name="nome" maxlength="60" value="${esc(m.nome)}" ${edita ? '' : 'disabled'}></label>
+      abaC.innerHTML = `<button class="bt bt--verde ed-compart" data-a="compartilhar">📤 Compartilhar esta maquete</button>
+        <label class="campo">Nome do bairro<input name="nome" maxlength="60" value="${esc(m.nome)}" ${edita ? '' : 'disabled'}></label>
         <div class="campo">Tipo de bairro<div class="tipos">${Object.entries(TIPOS).map(([k, [e, n]]) => `<button data-tipo="${k}" class="${m.tipo === k ? 'on' : ''}" ${edita ? '' : 'disabled'}>${e} ${n}</button>`).join('')}</div></div>
         <label class="campo">Cidade (opcional)<input name="cidade" maxlength="60" value="${esc(m.cidade || '')}" placeholder="Ex.: Uberlândia - MG" ${edita ? '' : 'disabled'}></label>
         <label class="campo">A história do bairro<textarea name="historia" maxlength="6000" rows="9" placeholder="Como o bairro nasceu? Quem mora aqui? O que tem de bom e o que precisa melhorar?" ${edita ? '' : 'disabled'}>${esc(m.historia || '')}</textarea></label>
@@ -631,7 +669,7 @@ export async function montar(app, [id]) {
       ${htmlMatematica(calcular(m, analise), analise)}
       <div class="caps-b"><button class="bt" data-mat="regua">📏 Medir com a régua</button><button class="bt" data-mat="eixos">📊 Mostrar o plano cartesiano</button></div>`;
   }
-  let textoTimer, textoPendente = false; function mudouTexto() { textoPendente = true; clearTimeout(textoTimer); textoTimer = setTimeout(() => { textoPendente = false; pendente = true; selo.textContent = '✏️ Editando…'; clearTimeout(salvarTimer); salvarTimer = setTimeout(gravar, 1200); }, 300); }
+  let textoTimer, textoPendente = false; function mudouTexto() { textoPendente = true; clearTimeout(textoTimer); textoTimer = setTimeout(() => { textoPendente = false; mudou(); }, 300); }
 
   // ------------------------------------------------ termômetro ao vivo + balõezinhos
   let ultimoToque = null, analiseTimer;
@@ -686,14 +724,30 @@ export async function montar(app, [id]) {
 
   // ------------------------------------------------ começo
   escolherFerr(S.ferr); atualizarVer();
+  // rascunho guardado neste aparelho: pergunta se quer continuar de onde parou
+  async function perguntarRascunho() {
+    if (!edita) return; let r = null; try { r = JSON.parse(localStorage.getItem(CHAVE_RASCUNHO(m.id)) || 'null'); } catch { /* */ }
+    if (!r || !r.m) return;
+    const maisNova = r.base && m.atualizado && m.atualizado > r.base;
+    const v = await janela({ titulo: '📝 Você tem um rascunho', classe: 'janela-sair', fechar: false,
+      corpo: `<p class="sair-p">Encontrei mudanças em <b>${esc(m.nome)}</b> que não foram salvas (rascunho de <b>${quando(r.quando)}</b>).</p>${maisNova ? '<p class="sair-p" style="color:var(--perigo)">⚠️ Depois desse rascunho a maquete foi salva de novo (talvez em outro aparelho).</p>' : ''}`,
+      botoes: [{ texto: 'Abrir a versão salva', classe: 'bt--leve', valor: 'salva' }, { texto: '📝 Continuar o rascunho', classe: 'bt--sol', valor: 'rascunho' }] });
+    if (v !== 'rascunho') { apagarRascunho(); return; }
+    const { id: _i, atualizado: _a, conta: _c, dono: _d, pendente: _p, ...dados } = r.m; void _i; void _a; void _c; void _d; void _p;
+    Object.assign(m, dados); ix = indexar(m); S.sel = null; esconderSel();
+    ed.querySelector('.ed-nome b').textContent = m.nome; desfazer = []; refazer = []; botoesHist();
+    mudou(); desenharAba(); notaTopo(); enquadrarTudo(); aviso('📝 Rascunho aberto. Não esqueça de 💾 Salvar!', 'ok', 3000);
+  }
+  setTimeout(perguntarRascunho, 350);
   desenharCats(); desenharPecas(); botoesHist(); desenharAba(); notaTopo();
   medir();
   // pequena dica na primeira vez
   try { if (edita && !localStorage.getItem('bi:dica-editor')) { localStorage.setItem('bi:dica-editor', '1'); setTimeout(() => aviso('👇 Escolha uma peça embaixo e toque no mapa para colocar', 'ok', 4500), 600); } } catch { /* */ }
 
   return {
-    temMudancas: () => pendente || salvando || textoPendente,
-    perguntarSaida: async () => { if (textoPendente) { clearTimeout(textoTimer); textoPendente = false; pendente = true; } await gravar(); return true; },
-    sair: () => { if (textoPendente) { clearTimeout(textoTimer); textoPendente = false; pendente = true; } gravar(); desligarDados(); document.body.classList.remove('no-editor'); document.removeEventListener('keydown', tecla); document.removeEventListener('keyup', solta); },
+    temMudancas: () => edita && (pendente || salvando || textoPendente),
+    perguntarSaida,
+    guardarRascunho: () => { juntarTexto(); guardarRascunho(); }, // atualização do app: guarda sem perguntar
+    sair: () => { juntarTexto(); if (pendente) guardarRascunho(); desligarDados(); document.body.classList.remove('no-editor'); document.removeEventListener('keydown', tecla); document.removeEventListener('keyup', solta); },
   };
 }
