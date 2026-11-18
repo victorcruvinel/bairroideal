@@ -45,10 +45,10 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Testes novos: `node test/pinca.mjs` (iPad), `node test/service-worker.mjs`; `test/interacoes.mjs` testa as setas do terreno e o L.
 
 ## PENDENTE (próxima sessão começa aqui)
-A Rodada 5 já está publicada (commit 6a20c3d, na `main` e no branch de trabalho). Testes que passaram: npm test (24), interacoes.mjs, pinca.mjs.
-1. Conferir se o build do Cloudflare do 6a20c3d deu "success" (`gh api repos/victorcruvinel/bairroideal/commits/6a20c3d/check-runs`).
-2. Tirar fotos do editor novo (modo 📐 Terreno no computador, iPad e celular) e mandar para o Victor. Rodar também passeio-toque, login, atualizar-instalar e service-worker.
-3. Conferir com o Victor no iPad: pinça no mapa, setas do terreno, fazer um L. Ajustar o que ele pedir.
+Última publicação: 7f20b20 (18/11) = painel do Terreno arrumado no iPad em pé (dica embaixo, sem coluna fininha). Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker). Fotos do Terreno (computador, iPad, celular, L) já mandadas.
+1. Conferir se o build do Cloudflare do 7f20b20 deu "success" (nesta sessão a rede bloqueou o site e não havia ferramenta para ver os checks; pedir ao Victor olhar no painel).
+2. Conferir com o Victor no iPad: pinça no mapa, setas do terreno, fazer um L. Ajustar o que ele pedir.
+3. (Ideia) No iPad em pé o mapa fica pequeno no modo Terreno (sobra espaço em cima); dá para aproximar mais.
 4. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev; ele pode querer trocar.
 
 ## Infra
