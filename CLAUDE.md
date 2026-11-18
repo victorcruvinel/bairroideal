@@ -85,7 +85,7 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 
 ## Rodada 12 (18/11): carregando que travava e voo com limites
 - Carregando infinito (Victor: terreno vazio → modo 3D no iPad): não reproduziu aqui (local, nuvem falsa, iPad, iPhone); a causa provável é pedido à nuvem sem limite de tempo. Agora `api()` tem tempo máximo (25 s, AbortController → erro `demorou`); `abrir()` com cópia no aparelho espera a nuvem só 6 s e abre a cópia; o router mostra "A internet está lenta…" aos 8 s e, aos 30 s, a tela de erro com **🔄 Tentar de novo**.
-- Voo (passeio.js): só por cima de quadradinhos que existem (`sobreMaquete`, folga 0,3; desliza na beira, aviso "beira da maquete"); teto de **16** de altura (aviso "Altura máxima"); ao pousar em prédio/água/fora vai para o lugar livre mais perto (`lugarParaPousar`).
+- Voo (passeio.js): só por cima de quadradinhos que existem (`sobreMaquete`, folga 0,3; desliza na beira, aviso "beira da maquete"); teto de **36** de altura (era 16; Victor pediu +20 em 18/11; aviso "Altura máxima"); a neblina se afasta com a altura e as nuvens somem acima de ~9–15 (senão tampam o bairro); ao pousar em prédio/água/fora vai para o lugar livre mais perto (`lugarParaPousar`).
 - Teste novo: `node test/voo.mjs` (servidor 8090): terreno vazio abre no passeio; voa 6 s para fora e continua dentro; sobe até o teto; pousa e anda.
 
 ## Rodada 13 (18/11): colocar peça como jogo de construção + tutorial
@@ -110,7 +110,7 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Medido (nuvem demorando 3 s): abrir maquete 0,1–0,2 s · voltar ao início < 0,05 s · criar maquete 0,6 s · salvar 0,07 s · abrir o app ~2,9 s (com a animação). `test/rapido.mjs` cobre criar → colocar → salvar → sair → abrir e confere que chegou na nuvem.
 
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 15 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo, tutorial, rapido).
+Última publicação: Rodada 15 + teto do voo 36 (na `main` e no branch de trabalho). Victor disse em 18/11 de manhã: "ficou perfeito". Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo, tutorial, rapido).
 1. Conferir com o Victor se o build do Cloudflare de 3235b58 deu "success" (nesta sessão a rede bloqueava o site e não havia ferramenta para ver os checks).
 2. Perguntar se abrir ficou rápido no iPad. Perguntar o que ele achou do jeito novo de colocar peça (✓) e do tutorial. Perguntar se o carregando do 3D voltou a travar (se sim, pedir print e o que estava fazendo). Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
 3. Quando ele convidar a professora: ver se o e-mail chegou sem o nome dele e se ela vê as maquetes de exemplo como "da equipe" e consegue editar.

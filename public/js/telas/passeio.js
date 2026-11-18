@@ -171,6 +171,7 @@ export async function montar(app, [id]) {
   for (const o of m.objs || []) if (OBJETOS[o.t]) cena.add(modelo(o));
   // nuvens de blocos
   const nuvens = new THREE.Group(); for (let i = 0; i < 14; i++) { const n = new THREE.Group(); for (let j = 0; j < 4; j++) caixa(n, 2 + Math.random() * 2, .5, 1.4 + Math.random(), j * 1.3, 0, (j % 2) * .6, 0xffffff, { semSombra: true, extra: { transparent: true, opacity: .92 } }); n.position.set(cx + (Math.random() - .5) * raio * 3, 9 + Math.random() * 3, cz + (Math.random() - .5) * raio * 3); nuvens.add(n); } cena.add(nuvens);
+  const matNuvens = []; nuvens.traverse((o) => { if (o.material && !matNuvens.includes(o.material)) matNuvens.push(o.material); });
 
   // ------------------------------------------------ jogador
   const livre = (x, y) => { const k = K(Math.floor(x), Math.floor(y)); const ch = ix.chao.get(k); if (!ch || ch === 'agua' || ch === 'aguasuja') return false; const o = ix.ocup.get(k); return !(o && OBJETOS[o.t].solido); };
@@ -187,7 +188,7 @@ export async function montar(app, [id]) {
   const eu = { x: inicio[0], z: inicio[1], y: 0, vy: 0, vx: 0, vz: 0, alvoGiro: null, alvoOlhar: null, giro: giro0 ?? (Math.atan2(-(cx - inicio[0]), -(cz - inicio[1])) || 0), olhar: -0.08, voar: false };
   const OLHO = .38, teclas = new Set(); let joy = { x: 0, y: 0 };
   // voo: só por cima da maquete (nada de sair para o vazio) e até um teto, como no Minecraft
-  const TETO = 16, BEIRA = .3;
+  const TETO = 36, BEIRA = .3; // teto: 36 blocos (dá para ver uma maquete grande inteira lá de cima)
   const temChao = (x, z) => ix.chao.has(K(Math.floor(x), Math.floor(z)));
   const sobreMaquete = (x, z) => temChao(x + BEIRA, z + BEIRA) && temChao(x - BEIRA, z - BEIRA) && temChao(x + BEIRA, z - BEIRA) && temChao(x - BEIRA, z + BEIRA);
   let avisouTeto = false, avisouBeira = false;
@@ -316,6 +317,9 @@ export async function montar(app, [id]) {
     const rapidez = Math.hypot(eu.vx, eu.vz); passoFase += rapidez * dt * 5.5;
     const balanco = eu.y < .01 && !eu.voar ? Math.sin(passoFase) * .012 * Math.min(1, rapidez / 2.6) : 0;
     camera.position.set(eu.x, eu.y + OLHO + balanco, eu.z);
+    cena.fog.near = 18 + eu.y * 1.5; cena.fog.far = 60 + eu.y * 3;
+    // voando acima das nuvens elas vão sumindo (senão tampam o bairro lá de cima)
+    const nuvem = Math.max(0, Math.min(1, (15 - eu.y) / 6)); nuvens.visible = nuvem > 0.01; for (const mt of matNuvens) mt.opacity = .92 * nuvem; // quanto mais alto, mais longe a neblina (lá de cima o bairro fica nítido)
     camera.rotation.set(0, 0, 0, 'YXZ'); camera.rotation.order = 'YXZ'; camera.rotation.y = eu.giro; camera.rotation.x = eu.olhar;
     pessoas.forEach((p) => { p.position.y = Math.abs(Math.sin(agora / 300 + p.userData.bob)) * .03; });
     fogos.forEach((x, i) => { x.scale.set(1 + Math.sin(agora / 80 + i) * .15, 1 + Math.cos(agora / 70 + i) * .2, 1 + Math.sin(agora / 90 + i) * .15); });

@@ -19,16 +19,17 @@ await p.keyboard.down('w'); await p.waitForTimeout(6000); await p.keyboard.up('w
 let e = await eu();
 assert.ok(e.x > 0 && e.x < 12 && e.z > 0 && e.z < 12, `continua em cima da maquete 12×12 (x=${e.x.toFixed(2)}, z=${e.z.toFixed(2)})`);
 // subir muito: para no teto
-await p.keyboard.down(' '); await p.waitForTimeout(7000); await p.keyboard.up(' ');
-e = await eu(); assert.ok(e.y <= 16.001 && e.y > 14, `parou no teto (altura ${e.y.toFixed(2)})`);
+await p.keyboard.down(' '); await p.waitForTimeout(14500); await p.keyboard.up(' ');
+e = await eu(); assert.ok(e.y <= 36.001 && e.y > 34, `parou no teto (altura ${e.y.toFixed(2)})`);
+await p.evaluate(() => { window.__eu.olhar = -1.1; }); await p.waitForTimeout(300); // olha para baixo: dá para ver o bairro lá de cima
 if (FOTOS) await p.screenshot({ path: FOTOS + '/80-voo-teto.png' });
 // pousar: cai em lugar livre dentro da maquete
-await p.keyboard.press('v'); await p.waitForTimeout(3500);
+await p.keyboard.press('v'); await p.waitForTimeout(6000);
 e = await eu(); assert.equal(e.voar, false); assert.ok(e.y < .01, 'pousou no chão');
 assert.ok(e.x > 0 && e.x < 12 && e.z > 0 && e.z < 12, 'pousou dentro da maquete');
 // andar depois de pousar funciona (não ficou preso)
 const antes = await eu(); await p.evaluate(() => { window.__eu.giro += Math.PI; }); await p.keyboard.down('w'); await p.waitForTimeout(800); await p.keyboard.up('w');
 const depois = await eu(); assert.ok(Math.hypot(depois.x - antes.x, depois.z - antes.z) > .3, 'consegue andar depois de pousar');
 assert.deepEqual(erros, []);
-console.log('✔ voo: não sai da maquete, teto de 16, pousa e anda; terreno vazio abre no passeio');
+console.log('✔ voo: não sai da maquete, teto de 36, pousa e anda; terreno vazio abre no passeio');
 await b.close();
