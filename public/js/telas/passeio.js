@@ -186,6 +186,18 @@ export async function montar(app, [id]) {
   if (!inicio) inicio = [cx, cz];
   const eu = { x: inicio[0], z: inicio[1], y: 0, vy: 0, vx: 0, vz: 0, alvoGiro: null, alvoOlhar: null, giro: giro0 ?? (Math.atan2(-(cx - inicio[0]), -(cz - inicio[1])) || 0), olhar: -0.08, voar: false };
   const OLHO = .38, teclas = new Set(); let joy = { x: 0, y: 0 };
+  // voo: só por cima da maquete (nada de sair para o vazio) e até um teto, como no Minecraft
+  const TETO = 16, BEIRA = .3;
+  const temChao = (x, z) => ix.chao.has(K(Math.floor(x), Math.floor(z)));
+  const sobreMaquete = (x, z) => temChao(x + BEIRA, z + BEIRA) && temChao(x - BEIRA, z - BEIRA) && temChao(x + BEIRA, z - BEIRA) && temChao(x - BEIRA, z + BEIRA);
+  let avisouTeto = false, avisouBeira = false;
+  // ao pousar em cima de prédio, água ou fora do chão: vai para o lugar livre mais perto
+  function lugarParaPousar() {
+    if (livre(eu.x, eu.z) && sobreMaquete(eu.x, eu.z)) return null;
+    let melhor = null, d0 = Infinity;
+    for (const [k] of ix.chao) { const x = Math.floor(k / 100000) - 50000 + .5, z = (k % 100000) - 50000 + .5; if (!livre(x, z)) continue; const d = Math.hypot(x - eu.x, z - eu.z); if (d < d0) { d0 = d; melhor = [x, z]; } }
+    return melhor;
+  }
 
   // ------------------------------------------------ controles
   const ajuda = t.querySelector('.pas-ajuda');
@@ -202,7 +214,9 @@ export async function montar(app, [id]) {
   let segPular = false, segDescer = false;
   function pular() { if (eu.voar) return; if (eu.y <= .001) eu.vy = PULO; }
   let correr = false;
-  function alternarVoo() { eu.vy = 0; eu.voar = !eu.voar; t.querySelector('[data-p=voar]').classList.toggle('on', eu.voar); t.classList.toggle('voando', eu.voar); t.querySelector('[data-p=pular] small').textContent = eu.voar ? 'subir' : 'pular'; if (eu.voar) { eu.y = Math.max(eu.y, 2.5); aviso(toque ? '🕊️ Voando! Use ⤒ subir e ⤓ descer. Toque em 🕊️ para pousar.' : '🕊️ Voando! W/S andam, Espaço sobe, Shift desce. V para pousar.', 'ok', 3000); } }
+  function alternarVoo() {
+    if (eu.voar) { const p = lugarParaPousar(); if (p) { eu.x = p[0]; eu.z = p[1]; eu.vx = 0; eu.vz = 0; } }
+    eu.vy = 0; eu.voar = !eu.voar; t.querySelector('[data-p=voar]').classList.toggle('on', eu.voar); t.classList.toggle('voando', eu.voar); t.querySelector('[data-p=pular] small').textContent = eu.voar ? 'subir' : 'pular'; if (eu.voar) { eu.y = Math.max(eu.y, 2.5); aviso(toque ? '🕊️ Voando! Use ⤒ subir e ⤓ descer. Toque em 🕊️ para pousar.' : '🕊️ Voando! W/S andam, Espaço sobe, Shift desce. V para pousar.', 'ok', 3000); } }
   // toque: joystick à esquerda e olhar à direita
   const joyEl = t.querySelector('.pas-joy'), bola = joyEl.querySelector('i'); let joyId = null, olharId = null, ultimo = null, joyCentro = null;
   // joystick: fica parado no canto; tocar em qualquer lugar da metade esquerda puxa ele para o dedo
@@ -282,9 +296,14 @@ export async function montar(app, [id]) {
     if (Math.abs(eu.vx) < .002) eu.vx = 0; if (Math.abs(eu.vz) < .002) eu.vz = 0;
     const nx = eu.x + eu.vx * dt, nz = eu.z + eu.vz * dt;
     if (eu.voar) {
-      eu.x = nx; eu.z = nz;
+      // desliza pela beira da maquete (igual a uma parede invisível), sem sair dela
+      let bateu = false;
+      if (sobreMaquete(nx, eu.z)) eu.x = nx; else { eu.vx = 0; bateu = true; }
+      if (sobreMaquete(eu.x, nz)) eu.z = nz; else { eu.vz = 0; bateu = true; }
+      if (bateu && !avisouBeira) { avisouBeira = true; aviso('🧱 Aqui é a beira da maquete', 'ok', 1800); }
       const sobe = teclas.has(' ') || segPular, desce = teclas.has('shift') || segDescer;
       eu.vy += (((sobe ? 3 : 0) - (desce ? 3 : 0)) - eu.vy) * Math.min(1, dt * 8); eu.y = Math.max(0, eu.y + eu.vy * dt);
+      if (eu.y >= TETO) { eu.y = TETO; eu.vy = Math.min(0, eu.vy); if (!avisouTeto) { avisouTeto = true; aviso('☁️ Altura máxima! Daqui dá para ver o bairro todo.', 'ok', 2400); } }
     } else {
       const folga = .15; const ok = (x, z) => livre(x + folga, z + folga) && livre(x - folga, z - folga) && livre(x + folga, z - folga) && livre(x - folga, z + folga);
       if (ok(nx, eu.z)) eu.x = nx; else eu.vx = 0;

@@ -44,10 +44,15 @@ async function rotear() {
   try {
     const mod = await rota[1]();
     const nome = Object.keys(NOMES).find((n) => String(rota[1]).includes(n)); if (nome) c.texto(NOMES[nome]);
-    atual = (await mod.montar(app, params.slice(1))) || null;
+    // nunca fica preso no "carregando": avisa que está lento e, se passar muito do tempo, oferece tentar de novo
+    const lento = setTimeout(() => c.texto('A internet está lenta… mais um pouquinho'), 8000);
+    let desistiu;
+    const limite = new Promise((_, nao) => { desistiu = setTimeout(() => nao(new Error('Demorou demais para abrir. Confira a internet e tente de novo.')), 30000); });
+    try { atual = (await Promise.race([mod.montar(app, params.slice(1)), limite])) || null; } finally { clearTimeout(lento); clearTimeout(desistiu); }
   } catch (e) {
     console.error(e);
-    app.innerHTML = `<div class="tela" style="display:grid;place-items:center;text-align:center"><div><div style="font-size:54px">🚧</div><h2>Ops! Algo deu errado.</h2><p style="color:var(--tinta2);font-weight:700;margin:8px 0 16px">${String(e && e.message || e)}</p><a class="bt bt--sol" href="#/">Voltar ao início</a></div></div>`;
+    app.innerHTML = `<div class="tela" style="display:grid;place-items:center;text-align:center"><div><div style="font-size:54px">🚧</div><h2>Ops! Algo deu errado.</h2><p style="color:var(--tinta2);font-weight:700;margin:8px 0 16px">${String(e && e.message || e)}</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="bt bt--sol" id="denovo">🔄 Tentar de novo</button><a class="bt" href="#/">Voltar ao início</a></div></div></div>`;
+    app.querySelector('#denovo').onclick = () => rotear();
   } finally { c.fechar(); }
 }
 addEventListener('hashchange', rotear);

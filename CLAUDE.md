@@ -83,10 +83,15 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Convite com 2 cartões: 🎨 Usuário(a) (faz tudo nas maquetes, não cria contas) e ⭐ Administrador(a) (também convida/cria contas).
 - Apps Script atualizado pelo Victor em 18/11 (Codigo.gs da Rodada 11 colado + nova versão implantada).
 
+## Rodada 12 (18/11): carregando que travava e voo com limites
+- Carregando infinito (Victor: terreno vazio → modo 3D no iPad): não reproduziu aqui (local, nuvem falsa, iPad, iPhone); a causa provável é pedido à nuvem sem limite de tempo. Agora `api()` tem tempo máximo (25 s, AbortController → erro `demorou`); `abrir()` com cópia no aparelho espera a nuvem só 6 s e abre a cópia; o router mostra "A internet está lenta…" aos 8 s e, aos 30 s, a tela de erro com **🔄 Tentar de novo**.
+- Voo (passeio.js): só por cima de quadradinhos que existem (`sobreMaquete`, folga 0,3; desliza na beira, aviso "beira da maquete"); teto de **16** de altura (aviso "Altura máxima"); ao pousar em prédio/água/fora vai para o lugar livre mais perto (`lugarParaPousar`).
+- Teste novo: `node test/voo.mjs` (servidor 8090): terreno vazio abre no passeio; voa 6 s para fora e continua dentro; sobe até o teto; pousa e anda.
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 11 (commit 3235b58, na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos).
+Última publicação: Rodada 12 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo).
 1. Conferir com o Victor se o build do Cloudflare de 3235b58 deu "success" (nesta sessão a rede bloqueava o site e não havia ferramenta para ver os checks).
-2. Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
+2. Perguntar se o carregando do 3D voltou a travar (se sim, pedir print e o que estava fazendo). Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
 3. Quando ele convidar a professora: ver se o e-mail chegou sem o nome dele e se ela vê as maquetes de exemplo como "da equipe" e consegue editar.
 4. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
 5. Lembrete: mudanças no `apps-script/Codigo.gs` só valem depois que o Victor cola o código no Apps Script e implanta nova versão (README "Quando mudar o Codigo.gs"). Mandar o arquivo para ele (também como .txt).
@@ -98,7 +103,7 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 
 ## Testes
 - `npm test` (Node puro: Codigo.gs com Google falso, Worker, termômetro, matemática, CSS).
-- Playwright (Chromium já instalado no ambiente; use `PW=$(npm root -g)/playwright`). Precisam de `node test/servidor.mjs 8090` rodando: `interacoes.mjs`, `passeio-toque.mjs`, `pinca.mjs`.
+- Playwright (Chromium já instalado no ambiente; use `PW=$(npm root -g)/playwright`). Precisam de `node test/servidor.mjs 8090` rodando: `interacoes.mjs`, `passeio-toque.mjs`, `pinca.mjs`, `voo.mjs`.
 - Sobem o próprio servidor: `login.mjs` (8091, com planilha falsa), `atualizar-instalar.mjs` (8092), `service-worker.mjs` (8093), `dois-aparelhos.mjs` (8094, planilha falsa).
 - Rodar SEMPRE antes de publicar.
 

@@ -46,12 +46,14 @@ export async function descomprimir(txt) {
 }
 
 // ---------------- API (Worker -> Apps Script)
-export async function api(acao, dados = {}) {
-  let r;
+// tempo: depois disso desiste (internet lenta ou planilha engasgada não podem travar o app para sempre)
+export async function api(acao, dados = {}, { tempo = 25000 } = {}) {
+  let r; const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; const relogio = setTimeout(() => ctl?.abort(), tempo);
   try {
-    r = await fetch('/api', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ acao, sessao: estado.sessao, ...dados }) });
-  } catch { return { ok: false, erro: 'sem_internet' }; }
-  let j; try { j = await r.json(); } catch { return { ok: false, erro: 'resposta' }; }
+    r = await fetch('/api', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ acao, sessao: estado.sessao, ...dados }), signal: ctl?.signal });
+  } catch (e) { clearTimeout(relogio); return { ok: false, erro: e && e.name === 'AbortError' ? 'demorou' : 'sem_internet' }; }
+  let j; try { j = await r.json(); } catch { clearTimeout(relogio); return { ok: false, erro: ctl?.signal.aborted ? 'demorou' : 'resposta' }; }
+  clearTimeout(relogio);
   if (!j.ok && j.erro === 'sessao') { sairLocal(); avisar({ tipo: 'sessao' }); }
   return j;
 }
@@ -129,7 +131,8 @@ export async function abrir(id) {
   if (estado.visitante) return abrirVisitante(id);
   const l = await localUma(id);
   if (estado.nuvem && estado.sessao && navigator.onLine && !(l && l.pendente)) {
-    const r = await api('abrir', { id });
+    // com cópia no aparelho, espera a nuvem só um pouco; se ela demorar, abre a cópia (a sincronização acerta depois)
+    const r = await api('abrir', { id }, { tempo: l ? 6000 : 25000 });
     if (r.ok && r.maquete) return daNuvem(r.maquete);
   }
   return l || null;
