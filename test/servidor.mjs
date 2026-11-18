@@ -4,6 +4,7 @@
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const porta = Number(process.argv[2] || 8080), comPlanilha = process.argv.includes('--planilha');
+const lento = Number((process.argv.find((a) => a.startsWith('--lento=')) || '=0').split('=')[1]) || 0; // --lento=3000: a nuvem demora 3 s (igual à planilha do Google)
 const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
 let gas = null; let versaoTeste = 'dev';
 if (comPlanilha) { const { criarGas } = await import('./gas-falso.mjs'); gas = criarGas(); }
@@ -12,7 +13,7 @@ export const servidor = http.createServer(async (req, res) => {
   if (url.pathname === '/api') {
     let corpo = ''; for await (const c of req) corpo += c;
     if (!gas) { res.writeHead(503, { 'content-type': 'application/json' }); return res.end('{"ok":false,"erro":"nao_configurado"}'); }
-    const r = gas.post(corpo); res.writeHead(200, { 'content-type': 'application/json' }); return res.end(r);
+    const r = gas.post(corpo); if (lento) await new Promise((ok) => setTimeout(ok, lento)); res.writeHead(200, { 'content-type': 'application/json' }); return res.end(r);
   }
   // só no teste: pegar o último código mandado e ver a planilha
   if (gas && url.pathname === '/__codigo') { res.writeHead(200); return res.end(gas.ultimoCodigo(url.searchParams.get('email')) || ''); }

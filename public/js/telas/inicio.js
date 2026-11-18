@@ -31,15 +31,9 @@ export async function montar(app) {
         <div class="linha">${chipTipo(m.tipo)}<span class="nota" style="color:${corNota(m.nota)}" title="Nota do bairro">${notaTxt(m.nota)}</span></div></div></div>`;
 
   let lista;
-  async function carregar() {
-    lista = await listar();
-    // primeira vez: já deixa os dois bairros de exemplo prontos para mexer
-    let primeira = false; try { primeira = !localStorage.getItem('bi:exemplos'); } catch { /* */ }
-    if (primeira && !lista.minhas.length) {
-      try { localStorage.setItem('bi:exemplos', '1'); } catch { /* */ }
-      for (const id of ['carente', 'ideal']) await salvar(prepararParaSalvar(MODELOS.find((x) => x.id === id).criar()));
-      lista = await listar();
-    }
+  // desenha com o que já tem (rápido); a lista completa (nuvem + equipe) chega por trás e redesenha
+  function desenharLista() {
+    if (!tela.isConnected || document.querySelector('.menu-flut')) return;
     const g = tela.querySelector('#minhas');
     g.innerHTML = `<button class="cartao-m cartao-novo" id="nova"><b>＋</b>Nova maquete<small>do zero ou de um modelo pronto</small></button>` + lista.minhas.map((m) => cartao(m, true)).join('');
     g.querySelector('#nova').onclick = async () => { const m = await novaMaquete(); if (m) location.hash = '#/m/' + m.id; };
@@ -49,11 +43,24 @@ export async function montar(app) {
     const eq = tela.querySelector('#equipe');
     eq.innerHTML = lista.equipe.length ? `<h2 class="secao-t">👥 Maquetes da equipe <small>${lista.equipe.length}</small></h2><div class="grade-m">${lista.equipe.map((m) => cartao(m, false)).join('')}</div>` : '';
   }
+  async function carregar() {
+    lista = await listar();
+    // primeira vez: já deixa os dois bairros de exemplo prontos para mexer
+    let primeira = false; try { primeira = !localStorage.getItem('bi:exemplos'); } catch { /* */ }
+    if (primeira && !lista.minhas.length) {
+      try { localStorage.setItem('bi:exemplos', '1'); } catch { /* */ }
+      for (const id of ['carente', 'ideal']) await salvar(prepararParaSalvar(MODELOS.find((x) => x.id === id).criar()));
+      lista = await listar();
+    }
+    desenharLista();
+  }
   tela.querySelector('#nova2').onclick = async () => { const m = await novaMaquete(); if (m) location.hash = '#/m/' + m.id; };
   tela.querySelector('#tour2').onclick = () => { const ids = lista.minhas.map((m) => m.id); if (!ids.length) return; try { sessionStorage.setItem('bi:tour', JSON.stringify(ids)); } catch { /* */ } location.hash = '#/m/' + ids[0] + '/historia'; };
   tela.querySelector('#expo2').onclick = async () => (await import('../compartilhar.js')).compartilharSite();
   ligarInstalar(tela.querySelector('#inst2'));
-  await carregar();
+  // abre na hora com as maquetes do aparelho; sem nenhuma no aparelho (1º acesso), espera a lista completa
+  const doAparelho = await listar({ soAparelho: true });
+  if (doAparelho.minhas.length) { lista = doAparelho; desenharLista(); carregar(); } else await carregar();
   tela.querySelector('#ajuda2').onclick = () => tutorial('inicio', TUTORIAL_INICIO, { forcar: true });
   setTimeout(() => { if (tela.isConnected && !document.querySelector('.janela-fundo, .instalar')) tutorial('inicio', TUTORIAL_INICIO); }, 600); // 1ª vez: mostra sozinho
   // mudou algo em outro aparelho: a lista se atualiza sozinha (menos com o menu ⋯ aberto)

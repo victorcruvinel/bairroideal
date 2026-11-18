@@ -64,8 +64,10 @@ export async function iniciar() {
     const r = await fetch('/versao.json', { cache: 'no-store' }); const j = await r.json(); estado.nuvem = !!j.nuvem; estado.versao = j.versao;
     try { localStorage.setItem('bi:nuvem', estado.nuvem ? '1' : '0'); } catch { /* */ }
   } catch { try { estado.nuvem = localStorage.getItem('bi:nuvem') === '1'; } catch { /* */ } }
+  // confere a conta na nuvem: se já temos os dados guardados, confere POR TRÁS (o app abre na hora)
   if (estado.nuvem && estado.sessao && navigator.onLine) {
-    const r = await api('eu'); if (r.ok) guardarUsuario(r.usuario); else if (r.erro === 'sessao') sairLocal();
+    const conferir = api('eu').then((r) => { if (r.ok) guardarUsuario(r.usuario); else if (r.erro === 'sessao') sairLocal(); });
+    if (!estado.usuario) await conferir;
   }
   if (!estado.nuvem) { estado.usuario = null; estado.sessao = null; }
   estado.visitante = lembrado('bi:visitante') && !estado.sessao; estado.editorLocal = lembrado('bi:editor-local');
@@ -92,9 +94,10 @@ export async function sair() { if (estado.sessao) await api('sair'); sairLocal()
 const resumo = (m) => ({ id: m.id, nome: m.nome, tipo: m.tipo, cidade: m.cidade || '', atualizado: m.atualizado, criado: m.criado, thumb: m.thumb || '', nota: m.nota ?? null, publica: m.publica !== false, pecas: (m.objs || []).length, area: Object.keys(m.chao || {}).length, dono: m.dono || conta(), donoNome: m.donoNome || '' });
 
 // lista: as minhas (aparelho + nuvem) e as da equipe (só nuvem)
-export async function listar() {
+export async function listar({ soAparelho = false } = {}) {
   if (estado.visitante) return listarVisitante();
-  const locais = await localTodas(); const mapa = new Map(locais.map((m) => [m.id, { ...resumo(m), pendente: !!m.pendente, nuvemEm: m.nuvemEm, local: true }]));
+  const locais = await localTodas();
+  if (soAparelho) return { minhas: locais.map((m) => ({ ...resumo(m), pendente: !!m.pendente, local: true })).sort((a, b) => String(b.atualizado).localeCompare(String(a.atualizado))), equipe: [], soAparelho: true }; const mapa = new Map(locais.map((m) => [m.id, { ...resumo(m), pendente: !!m.pendente, nuvemEm: m.nuvemEm, local: true }]));
   let equipe = [];
   if (estado.nuvem && estado.sessao && navigator.onLine) {
     const r = await api('listar');
@@ -130,9 +133,11 @@ async function abrirVisitante(id) {
 export async function abrir(id) {
   if (estado.visitante) return abrirVisitante(id);
   const l = await localUma(id);
-  if (estado.nuvem && estado.sessao && navigator.onLine && !(l && l.pendente)) {
-    // com cópia no aparelho, espera a nuvem só um pouco; se ela demorar, abre a cópia (a sincronização acerta depois)
-    const r = await api('abrir', { id }, { tempo: l ? 6000 : 25000 });
+  // tem cópia no aparelho: abre NA HORA e confere a nuvem por trás (se mudou em outro aparelho, a tela se atualiza sozinha)
+  if (l) { if (estado.nuvem && estado.sessao) setTimeout(() => sincronizar(), 300); return l; }
+  // não tem cópia (ex.: primeira vez neste aparelho): aí precisa esperar a nuvem
+  if (estado.nuvem && estado.sessao && navigator.onLine) {
+    const r = await api('abrir', { id });
     if (r.ok && r.maquete) return daNuvem(r.maquete);
   }
   return l || null;

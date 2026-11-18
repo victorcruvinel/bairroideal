@@ -94,10 +94,16 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - **Tutorial** (`js/tutorial.js`): passo a passo com fundo escuro, destaque amarelo no botão e balão (Pular / Voltar / Próximo, Esc e setas). `TUTORIAL_INICIO` (8 passos) e `TUTORIAL_EDITOR` (12 passos); aparecem sozinhos 1 vez por aparelho (`bi:tutorial-inicio`, `bi:tutorial-editor`); botões **❓ Como usar** (início) e **❓** (coluna da direita do editor) abrem de novo. Passos cujo botão não está na tela são pulados. A dica antiga `bi:dica-editor` saiu.
 - Testes: todos os testes de navegador marcam os tutoriais como vistos no `addInitScript`. Novo: `node test/tutorial.mjs` (8090). `pinca.mjs` agora testa deslizar sem colocar, o ✓, e "Pôr ao lado".
 
+## Rodada 14 (18/11): abrir rápido (aparelho primeiro)
+- Lentidão ao abrir maquete = esperar a planilha do Google (2–5 s por pedido). Agora **o aparelho vem primeiro**: `abrir()` devolve na hora a cópia do IndexedDB e chama `sincronizar()` por trás (se a nuvem mudou, `nuvem-mudou` atualiza a tela). Só espera a nuvem quando não há cópia no aparelho.
+- Início: desenha na hora com `listar({ soAparelho: true })` e completa com a lista da nuvem por trás (`desenharLista`). Abrir o app: a conferência da conta (`eu`) é por trás quando já há usuário guardado.
+- Medido com a nuvem demorando 3 s: abrir maquete 0,1–0,2 s; voltar ao início < 0,05 s. Passeio 3D ~1,3 s (montar a cena).
+- `test/servidor.mjs` aceita `--lento=3000` (nuvem lenta). Teste novo: `node test/rapido.mjs` (porta 8096).
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 13 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo, tutorial).
+Última publicação: Rodada 14 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo, tutorial, rapido).
 1. Conferir com o Victor se o build do Cloudflare de 3235b58 deu "success" (nesta sessão a rede bloqueava o site e não havia ferramenta para ver os checks).
-2. Perguntar o que ele achou do jeito novo de colocar peça (✓) e do tutorial. Perguntar se o carregando do 3D voltou a travar (se sim, pedir print e o que estava fazendo). Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
+2. Perguntar se abrir ficou rápido no iPad. Perguntar o que ele achou do jeito novo de colocar peça (✓) e do tutorial. Perguntar se o carregando do 3D voltou a travar (se sim, pedir print e o que estava fazendo). Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
 3. Quando ele convidar a professora: ver se o e-mail chegou sem o nome dele e se ela vê as maquetes de exemplo como "da equipe" e consegue editar.
 4. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
 5. Lembrete: mudanças no `apps-script/Codigo.gs` só valem depois que o Victor cola o código no Apps Script e implanta nova versão (README "Quando mudar o Codigo.gs"). Mandar o arquivo para ele (também como .txt).
@@ -110,7 +116,7 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 ## Testes
 - `npm test` (Node puro: Codigo.gs com Google falso, Worker, termômetro, matemática, CSS).
 - Playwright (Chromium já instalado no ambiente; use `PW=$(npm root -g)/playwright`). Precisam de `node test/servidor.mjs 8090` rodando: `interacoes.mjs`, `passeio-toque.mjs`, `pinca.mjs`, `voo.mjs`, `tutorial.mjs`. Cuidado: `pkill -f "servidor.mjs 809"` também derruba o 8090.
-- Sobem o próprio servidor: `login.mjs` (8091, com planilha falsa), `atualizar-instalar.mjs` (8092), `service-worker.mjs` (8093), `dois-aparelhos.mjs` (8094, planilha falsa).
+- Sobem o próprio servidor: `login.mjs` (8091, com planilha falsa), `atualizar-instalar.mjs` (8092), `service-worker.mjs` (8093), `dois-aparelhos.mjs` (8094, planilha falsa), `rapido.mjs` (8096, planilha falsa lenta).
 - Rodar SEMPRE antes de publicar.
 
 ## Como começar uma sessão nova (para não trabalhar em versão velha)
