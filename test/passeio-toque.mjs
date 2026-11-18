@@ -6,7 +6,7 @@ const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl
 for (const [nome, aparelho] of [['ipad', devices['iPad Pro 11 landscape']], ['iphone', devices['iPhone 15']]]) {
   const ctx = await b.newContext({ ...aparelho }); const p = await ctx.newPage();
   const erros = []; p.on('pageerror', (e) => erros.push(e.message));
-  await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); sessionStorage.setItem('bi:visitante', '1'); });
+  await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); sessionStorage.setItem('bi:visitante', '1'); });
   await p.goto('http://localhost:8090/'); await p.waitForSelector('.cartao-expo', { timeout: 15000 });
   assert.equal(await p.evaluate(() => document.documentElement.dataset.copiar), 'nao', 'visitante não copia');
   const id = await p.locator('.cartao-expo').first().getAttribute('data-id');
@@ -43,7 +43,7 @@ for (const [nome, aparelho] of [['ipad', devices['iPad Pro 11 landscape']], ['ip
   await ctx.close();
 }
 // quem entrou (modo local) pode copiar
-const p2 = await b.newPage(); await p2.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); sessionStorage.setItem('bi:editor-local', '1'); });
+const p2 = await b.newPage(); await p2.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); sessionStorage.setItem('bi:editor-local', '1'); });
 await p2.goto('http://localhost:8090/'); await p2.waitForSelector('.cartao-m[data-id]'); assert.equal(await p2.evaluate(() => document.documentElement.dataset.copiar), 'sim', 'com conta copia');
 console.log('✔ copiar: liberado com conta, bloqueado para visitante');
 await b.close();

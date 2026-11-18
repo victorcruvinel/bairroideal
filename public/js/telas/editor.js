@@ -8,6 +8,7 @@ import { CATEGORIAS, TODAS, OBJETOS, CHAOS, SINONIMOS, peca } from '../pecas.js'
 import { analisar, dicas, INDICADORES } from '../termometro.js';
 import { chipTipo, TIPOS, notaTxt, corNota, prepararParaSalvar } from './comum.js';
 import { historiaAutomatica } from './historia.js';
+import { tutorial, TUTORIAL_EDITOR } from '../tutorial.js';
 
 // [id, emoji, nome, dica comprida (computador), dica curta (celular)]
 const FERRAMENTAS = [
@@ -65,12 +66,14 @@ export async function montar(app, [id]) {
       <button class="redondo" data-a="girar" title="Girar a vista (Q / E)">↻</button>
       <button class="redondo" data-a="mais" title="Aproximar">＋</button><button class="redondo" data-a="menos" title="Afastar">－</button>
       <button class="redondo" data-a="tudo" title="Ver o mapa inteiro">⌖</button>
+      <button class="redondo ed-bt-ajuda" data-a="ajuda" title="Como usar o editor">❓</button>
       <button class="redondo ed-bt-ver" data-a="ver" title="Mostrar no mapa: grade, régua, plano cartesiano, noite" aria-expanded="false">👁️<b class="ed-ver-n esconde"></b></button>
     </div>
     <div class="ed-ver esconde" role="menu" aria-label="Mostrar no mapa"><h4>👁️ Mostrar no mapa</h4>
       ${CAMADAS.map(([id, e, n, d]) => `<button class="ed-ver-i" data-a="${id}" role="menuitemcheckbox" aria-checked="false"><span class="ed-ver-e">${e}</span><span class="ed-ver-t"><b>${n}</b><small>${d}</small></span><i class="chave"></i></button>`).join('')}
     </div>
     <div class="ed-sel esconde"></div>
+    <div class="ed-confirma esconde" role="group" aria-label="Colocar a peça"><button data-c="cancelar" title="Cancelar">✕</button><button data-c="girar" title="Girar (R)">🔄</button><button data-c="ok" class="ed-confirma-ok">✓ Colocar</button></div>
     <div class="ed-setas esconde">${[['N', 'para cima no mapa'], ['L', 'para a direita no mapa'], ['S', 'para baixo no mapa'], ['O', 'para a esquerda no mapa']].map(([d, t]) => `<div class="ed-seta" data-lado="${d}"><button class="ed-seta-mais" data-seta="${d}" data-op="mais" title="Aumentar ${t}"><i>➜</i><b>＋</b></button><button class="ed-seta-menos" data-seta="${d}" data-op="menos" title="Diminuir ${t}">－</button></div>`).join('')}</div>
     <div class="ed-regua lousa esconde"></div>
     <section class="ed-doca">
@@ -135,6 +138,7 @@ export async function montar(app, [id]) {
     const r = desenhar(ctx, ix, S.cam, W, H, opt); ultimosDesenhados = r.desenhados;
     if (S.eixos) desenharEixos(); if (S.regua.on) desenharRegua(); posicionarSetas();
     if (S.sel) posicionarSel();
+    posicionarConfirma();
   }
   // ponto do mundo (centro do quadradinho x,y) na tela
   function noTela(x, y, z = 0) { const G = lapis(ctx, S.cam, W, H, { planta: S.planta }); const [X, Y] = girar(S.cam.rot || 0, x + .5, y + .5); return G.P(X, Y, z); }
@@ -219,11 +223,17 @@ export async function montar(app, [id]) {
     return true;
   }
   function fantasma() {
-    if (!edita || !S.hover || S.arrastandoMapa) return null;
+    if (!edita) return null;
+    if (S.mira && S.ferr === 'colocar') return fantasmaEm(S.mira);
+    if (!S.hover || S.arrastandoMapa) return null;
     if (S.mover) { const o = S.mover.o; return { t: o.t, x: S.hover.x - S.mover.dx, y: S.hover.y - S.mover.dy, r: o.r, c: o.c, ok: cabe(o.t, S.hover.x - S.mover.dx, S.hover.y - S.mover.dy, o.r || 0, o) }; }
-    const p = pecaAtual(); if (S.ferr !== 'colocar' || !p || p.tipo !== 'obj') return null;
+    if (toqueSemMouse) return null; // no toque a peça transparente só aparece quando o dedo encosta
+    return fantasmaEm(S.hover);
+  }
+  function fantasmaEm(alvo) {
+    const p = pecaAtual(); if (S.ferr !== 'colocar' || !p || p.tipo !== 'obj' || !alvo) return null;
     const [w, d] = tamanho({ t: p.id, r: S.rot });
-    const x = S.hover.x - Math.floor((w - 1) / 2), y = S.hover.y - Math.floor((d - 1) / 2);
+    const x = alvo.x - Math.floor((w - 1) / 2), y = alvo.y - Math.floor((d - 1) / 2);
     return { t: p.id, x, y, r: S.rot, c: S.cor, ok: cabe(p.id, x, y, S.rot) };
   }
   const novoObj = (t, x, y, r, c) => ({ id: 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t, x, y, r, c });
@@ -352,6 +362,67 @@ export async function montar(app, [id]) {
     const fora = [[x0, y0], [x1 + 1, y0], [x1 + 1, y1 + 1], [x0, y1 + 1]].some(([x, y]) => { const [X, Y] = girar(rot, x, y); const [px, py] = G.P(X, Y); return px < a.x || px > a.x + a.w || py < a.y - 40 || py > a.y + a.h; });
     if (fora) enquadrarTudo();
   }
+  // ------------------------------------------------ colocar peça (como nos jogos de construção):
+  // a peça aparece transparente, a pessoa ajeita e confirma; se o lugar estiver ocupado, pergunta o que fazer
+  let toqueSemMouse = false;
+  const miraEm = (x, y, toque) => cel(x, toque ? y - 56 : y); // no toque a peça fica um pouco acima do dedo (o dedo não tampa)
+  const confEl = $('.ed-confirma');
+  function mostrarConfirma() { const f = fantasma(); if (!f) { esconderConfirma(); return; } const ok = confEl.querySelector('[data-c=ok]'); ok.textContent = f.ok ? '✓ Colocar' : '⚠️ Ocupado'; ok.classList.toggle('ruim', !f.ok); confEl.classList.remove('esconde'); posicionarConfirma(); }
+  function esconderConfirma() { confEl.classList.add('esconde'); }
+  function posicionarConfirma() {
+    if (confEl.classList.contains('esconde')) return; const f = fantasma(); if (!f) { esconderConfirma(); return; }
+    const b = caixaGirada(S.cam.rot, f), G = lapis(ctx, S.cam, W, H, { planta: S.planta });
+    const p = S.planta ? G.P(b.X + b.W / 2, b.Y + b.D) : G.P(b.X + b.W / 2, b.Y + b.D / 2, 0);
+    confEl.style.left = Math.max(110, Math.min(W - 110, p[0])) + 'px'; confEl.style.top = Math.max(150, Math.min(H - 60, p[1] + 26 * Math.max(.6, S.cam.z))) + 'px';
+  }
+  const mostrarConfirmaSeAberta = () => { if (!confEl.classList.contains('esconde')) mostrarConfirma(); };
+  function cancelarMira() { S.mira = null; esconderConfirma(); pedir(); }
+  function porPeca(f) {
+    comecarMudanca(); const o = novoObj(f.t, f.x, f.y, f.r, f.c); m.objs.push(o); ix = indexar(m); terminarMudanca(); pedir();
+    const p = OBJETOS[o.t]; if (p.cores && ['pessoa', 'familia', 'crianca', 'carro', 'casa', 'barraco'].includes(o.t)) { S.cor = (S.cor + 1) % p.cores; desenharOpcoes(); }
+    const G = lapis(ctx, S.cam, W, H, { planta: S.planta }), b = caixaGirada(S.cam.rot, o), q = G.P(b.X + b.W / 2, b.Y + b.D / 2, 30); feedbackLocal(q[0], q[1]);
+    return o;
+  }
+  async function tentarColocar() {
+    const f = fantasma(); if (!f) return;
+    if (f.ok) { porPeca(f); cancelarMira(); return; }
+    // lugar ruim: descobre o porquê
+    const p = OBJETOS[f.t], [w, d] = tamanho({ t: f.t, r: f.r }), ocup = new Set(); let semChao = false, aguaErrada = false;
+    for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) {
+      const k = K(f.x + i, f.y + j), ch = ix.chao.get(k); if (!ch) { semChao = true; continue; }
+      const naAgua = ch === 'agua' || ch === 'aguasuja'; if (p.agua ? !naAgua : naAgua) aguaErrada = true;
+      const oc = ix.ocup.get(k); if (oc) ocup.add(oc);
+    }
+    const nomes = [...new Set([...ocup].map((o) => OBJETOS[o.t]?.nome || 'peça'))].join(', ');
+    const podeTrocar = ocup.size && !semChao && !aguaErrada;
+    const motivo = semChao ? 'Esse lugar fica <b>fora do terreno</b>.' : aguaErrada ? (p.agua ? 'Essa peça precisa ficar <b>na água</b>.' : 'Essa peça <b>não pode ficar na água</b>.') : `Neste lugar já tem: <b>${esc(nomes)}</b>.`;
+    const r = await janela({ titulo: podeTrocar ? '🏠 Já tem uma peça aqui' : '🙈 Não cabe aqui', classe: 'janela-sair',
+      corpo: `<p class="sair-p">${motivo} O que você quer fazer com <b>${esc(p.nome)}</b>?</p>`,
+      botoes: [{ texto: 'Cancelar', classe: 'bt--leve', valor: null }, { texto: '↔️ Pôr ao lado', classe: podeTrocar ? '' : 'bt--sol', valor: 'lado' }, ...(podeTrocar ? [{ texto: '🔁 Substituir', classe: 'bt--sol', valor: 'trocar' }] : [])] });
+    if (!r && !toqueSemMouse) { cancelarMira(); return; } // mouse: cancelou, some a peça transparente (no toque ela fica para ajeitar)
+    if (r === 'trocar') {
+      comecarMudanca(); m.objs = m.objs.filter((o) => !ocup.has(o)); ix = indexar(m); terminarMudanca();
+      porPeca({ ...f, ok: true }); cancelarMira(); aviso(`🔁 Troquei ${nomes} por ${p.nome}`, 'ok', 2200);
+    } else if (r === 'lado') {
+      const lugar = lugarLivrePerto(f);
+      if (!lugar) { aviso('Não achei um lugar livre perto 😕', 'erro', 2200); return; }
+      porPeca({ ...f, x: lugar[0], y: lugar[1], ok: true }); cancelarMira(); aviso('↔️ Coloquei do lado', 'ok', 1800);
+    }
+  }
+  function lugarLivrePerto(f) {
+    let melhor = null, d0 = Infinity;
+    for (let raio = 1; raio <= 14 && !melhor; raio++) for (let dx = -raio; dx <= raio; dx++) for (let dy = -raio; dy <= raio; dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== raio) continue;
+      if (cabe(f.t, f.x + dx, f.y + dy, f.r)) { const d = Math.hypot(dx, dy); if (d < d0) { d0 = d; melhor = [f.x + dx, f.y + dy]; } }
+    }
+    return melhor;
+  }
+  confEl.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-c]')?.dataset.c; if (!a) return;
+    if (a === 'cancelar') cancelarMira();
+    if (a === 'girar') { S.rot = (S.rot + 1) % 4; pedir(); mostrarConfirma(); }
+    if (a === 'ok') tentarColocar();
+  });
   function colocarObjeto(c) {
     const f = fantasma(); if (!f) return false;
     if (!f.ok) { const oc = ix.ocup.get(K(c.x, c.y)); if (oc) selecionar(oc); return false; }
@@ -379,7 +450,7 @@ export async function montar(app, [id]) {
       gesto = { tipo: 'mapa', dois: true, ultimo: centro(), dist: distDedos() }; S.arrastandoMapa = true; esconderSel(); return;
     }
     if (ponteiros.size > 2) return;
-    const [x, y] = pos(e), c = cel(x, y); S.hover = c;
+    const [x, y] = pos(e), c = cel(x, y); S.hover = c; toqueSemMouse = e.pointerType === 'touch'; tocandoAgora = e.pointerType === 'touch';
     if (S.regua.on && e.button === 0 && !espaco) {
       if (!ix.chao.has(K(c.x, c.y))) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y] }; return; }
       if (!S.regua.a || S.regua.b) S.regua = { on: true, a: c, b: null }; else S.regua.b = c;
@@ -391,6 +462,7 @@ export async function montar(app, [id]) {
     if (e.pointerType === 'touch') { gesto = { tipo: 'espera', x, y, c, t: setTimeout(() => { if (gesto && gesto.tipo === 'espera') rodarEspera(); }, 110) }; return; }
     acaoInicial(x, y, c);
   });
+  let tocandoAgora = false;
   function rodarEspera() { const g = gesto; clearTimeout(g.t); gesto = null; acaoInicial(g.x, g.y, g.c); }
   function acaoInicial(x, y, c) {
     const p = pecaAtual();
@@ -402,8 +474,9 @@ export async function montar(app, [id]) {
       return;
     }
     if (S.ferr === 'colocar' && (!p)) { gesto = { tipo: 'mapa', ultimo: [x, y], ini: [x, y], tocar: true, semPeca: true }; return; }
+    // peça (casa, prédio…): primeiro aparece transparente; o toque não coloca nada sozinho
+    if (S.ferr === 'colocar' && p.tipo === 'obj') { S.sel = null; esconderSel(); esconderConfirma(); S.mira = miraEm(x, y, tocandoAgora); gesto = { tipo: 'posicionar', toque: tocandoAgora }; pedir(); return; }
     comecarMudanca();
-    if (S.ferr === 'colocar' && p.tipo === 'obj') { const ok = colocarObjeto(c); gesto = { tipo: 'colocar', ult: c.x + ',' + c.y, ini: [x, y], pos: [x, y], colocou: ok }; if (ok) feedbackLocal(x, y); return; }
     if (S.ferr === 'apagar') { apagarEm(c); gesto = { tipo: 'apagar', ult: c.x + ',' + c.y }; return; }
     pintarChao(c, p.id); gesto = { tipo: 'pintar', ult: c.x + ',' + c.y, t: p.id };
   }
@@ -419,12 +492,13 @@ export async function montar(app, [id]) {
     }
     if (gesto && gesto.tipo === 'espera') { if (Math.hypot(x - gesto.x, y - gesto.y) < 4) return; rodarEspera(); }
     const c = cel(x, y), mudouCel = !S.hover || S.hover.x !== c.x || S.hover.y !== c.y; S.hover = c;
-    if (!gesto) { if (mudouCel) pedir(); cv.style.cursor = cursor(); return; }
+    if (!gesto) { if (e.pointerType === 'mouse') toqueSemMouse = false; if (mudouCel) pedir(); cv.style.cursor = cursor(); return; }
     const k = c.x + ',' + c.y;
     switch (gesto.tipo) {
       case 'mapa': if (gesto.tocar && Math.hypot(x - gesto.ini[0], y - gesto.ini[1]) > 6) gesto.tocar = false; arrastar(x - gesto.ultimo[0], y - gesto.ultimo[1]); gesto.ultimo = [x, y]; S.arrastandoMapa = !gesto.tocar; break;
       case 'talvez-mover': if (Math.hypot(x - gesto.ini[0], y - gesto.ini[1]) > 6) { comecarMudanca(); S.mover = { o: gesto.o, dx: gesto.c.x - gesto.o.x, dy: gesto.c.y - gesto.o.y }; esconderSel(); gesto = { tipo: 'mover' }; pedir(); } break;
       case 'mover': if (mudouCel) pedir(); break;
+      case 'posicionar': { const nm = miraEm(x, y, gesto.toque); if (!S.mira || nm.x !== S.mira.x || nm.y !== S.mira.y) { S.mira = nm; pedir(); } break; }
       case 'colocar': if (k !== gesto.ult) { gesto.ult = k; const p = pecaAtual(); if (p && OBJETOS[p.id].w === 1 && OBJETOS[p.id].d === 1 && colocarObjeto(c)) gesto.colocou = true; } gesto.pos = [x, y]; break;
       case 'pintar': if (k !== gesto.ult) { gesto.ult = k; pintarChao(c, gesto.t); } break;
       case 'apagar': if (k !== gesto.ult) { gesto.ult = k; apagarEm(c); } break;
@@ -435,8 +509,9 @@ export async function montar(app, [id]) {
   const soltar = (e) => {
     ponteiros.delete(e.pointerId); tipos.delete(e.pointerId);
     if (gesto && gesto.tipo === 'espera') rodarEspera();
-    if (gesto && gesto.dois) { if (!ponteiros.size) { gesto = null; S.arrastandoMapa = false; } return; }
+    if (gesto && gesto.dois) { if (!ponteiros.size) { gesto = null; S.arrastandoMapa = false; if (S.mira) mostrarConfirma(); } return; }
     if (!gesto) return; const g = gesto; gesto = null; S.arrastandoMapa = false;
+    if (g.tipo === 'posicionar') { if (g.toque) mostrarConfirma(); else tentarColocar(); pedir(); return; } // toque: espera o ✓ · mouse: soltou, colocou
     if (g.tipo === 'talvez-mover') selecionar(g.o);
     else if (g.tipo === 'mapa' && g.tocar) {
       const [x, y] = pos(e); const o = objetoEm(x, y);
@@ -478,13 +553,14 @@ export async function montar(app, [id]) {
     if ((e.metaKey || e.ctrlKey) && k === 's') { e.preventDefault(); if (pendente && edita) gravar().then((ok) => ok && aviso('💾 Salvo!')); return; }
     if ((e.metaKey || e.ctrlKey) && k === 'y') { e.preventDefault(); voltar(refazer, desfazer); return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (k === 'r') { if (S.sel) girarSel(); else { S.rot = (S.rot + 1) % 4; pedir(); } }
+    if (k === 'r') { if (S.sel) girarSel(); else { S.rot = (S.rot + 1) % 4; pedir(); mostrarConfirmaSeAberta(); } }
+    else if (k === 'enter' && !confEl.classList.contains('esconde')) tentarColocar();
     else if (k === 'q' || k === 'e') girarVista(k === 'e' ? 1 : 3);
     else if (k === 'n') alternarNoite();
     else if (k === 'm') ed.querySelector('[data-a=regua]').click(); else if (k === 'g') ed.querySelector('[data-a=grade]').click();
     else if (k === '+' || k === '=') zoom(1.2); else if (k === '-') zoom(1 / 1.2);
     else if ((k === 'delete' || k === 'backspace') && S.sel) apagarSel();
-    else if (k === 'escape') { S.sel = null; esconderSel(); fecharVer(); if (edita) escolherFerr('tocar'); pedir(); }
+    else if (k === 'escape') { S.sel = null; esconderSel(); fecharVer(); S.mira = null; esconderConfirma(); if (edita) escolherFerr('tocar'); pedir(); }
     else if (k.startsWith('arrow')) { const v = { arrowup: [0, 60], arrowdown: [0, -60], arrowleft: [60, 0], arrowright: [-60, 0] }[k]; arrastar(...v); e.preventDefault(); }
     else if (/^[1-5]$/.test(k) && edita) escolherFerr(FERRAMENTAS[+k - 1][0]);
   };
@@ -523,6 +599,7 @@ export async function montar(app, [id]) {
   function escolherFerr(f) {
     const mudou = S.ferr !== f; S.ferr = f; ed.querySelectorAll('.ed-f[data-f]').forEach((b) => { b.classList.toggle('on', b.dataset.f === f); b.setAttribute('aria-pressed', b.dataset.f === f); });
     FERRAMENTAS.forEach(([id]) => ed.classList.toggle('ferr-' + id, id === f));
+    if (f !== 'colocar') { S.mira = null; esconderConfirma(); }
     if (f !== 'colocar' && S.peca) { S.peca = null; desenharPecas(); } // fora do Colocar nenhuma peça fica escolhida: tocar no mapa não coloca nada
     if (f === 'colocar' && !S.peca) ed.classList.remove('doca-mini');
     const d = FERRAMENTAS.find((x) => x[0] === f); dica.innerHTML = `<b>${d[1]} ${d[2]}</b> · ${d[3]}`; cv.style.cursor = cursor();
@@ -568,6 +645,7 @@ export async function montar(app, [id]) {
     if (a === 'salvar') { if (!pendente) aviso('✓ Já está tudo salvo'); else if (await gravar()) aviso('💾 Salvo!'); }
     if (a === 'compartilhar') { if (pendente && !(await gravar())) return; /* compartilha a versão salva */ const { compartilhar } = await import('../compartilhar.js'); compartilhar(m, () => { if (S.aba === 'sobre') desenharAba(); }); }
     if (a === 'ver') { const abrir = verEl.classList.contains('esconde'); verEl.classList.toggle('esconde', !abrir); $('.ed-bt-ver').setAttribute('aria-expanded', abrir); atualizarVer(); }
+    if (a === 'ajuda') { fecharVer(); tutorial('editor', TUTORIAL_EDITOR, { forcar: true }); }
     if (a === 'grade') { S.grade = !S.grade; guardarPref(); atualizarVer(); pedir(); }
     if (a === 'encolher') { ed.classList.toggle('doca-mini'); requestAnimationFrame(medirDoca); }
     if (a === 'regua') { S.regua = S.regua.on ? { on: false, a: null, b: null } : { on: true, a: null, b: null }; S.sel = null; esconderSel(); atualizarRegua(); atualizarVer(); pedir(); if (celular()) fecharVer(); }
@@ -604,6 +682,7 @@ export async function montar(app, [id]) {
   pecasEl.addEventListener('click', (e) => {
     const b = e.target.closest('.pc'); if (!b) return;
     if (S.peca === b.dataset.id && S.ferr === 'colocar') { S.peca = null; } else { S.peca = b.dataset.id; S.cor = 0; }
+    S.mira = null; esconderConfirma();
     if (S.ferr !== 'colocar') escolherFerr('colocar');
     if (S.peca) { avisoFerr?.remove(); avisoFerr = null; } // já escolheu: a dica "escolha uma peça" some
     S.sel = null; esconderSel(); desenharPecas(); pedir();
@@ -749,11 +828,10 @@ export async function montar(app, [id]) {
     ed.querySelector('.ed-nome b').textContent = m.nome; desfazer = []; refazer = []; botoesHist();
     mudou(); desenharAba(); notaTopo(); enquadrarTudo(); aviso('📝 Rascunho aberto. Não esqueça de 💾 Salvar!', 'ok', 3000);
   }
-  setTimeout(perguntarRascunho, 350);
+  // 1ª vez no editor: tutorial (depois da pergunta do rascunho, se houver)
+  setTimeout(async () => { await perguntarRascunho(); if (edita && ed.isConnected) tutorial('editor', TUTORIAL_EDITOR); }, 450);
   desenharCats(); desenharPecas(); botoesHist(); desenharAba(); notaTopo();
   medir();
-  // pequena dica na primeira vez
-  try { if (edita && !localStorage.getItem('bi:dica-editor')) { localStorage.setItem('bi:dica-editor', '1'); setTimeout(() => aviso('👇 Escolha uma peça embaixo e toque no mapa para colocar', 'ok', 4500), 600); } } catch { /* */ }
 
   return {
     temMudancas: () => edita && (pendente || salvando || textoPendente),

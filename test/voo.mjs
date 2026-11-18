@@ -5,7 +5,7 @@ const { chromium } = createRequire(import.meta.url)(process.env.PW || 'playwrigh
 const FOTOS = process.env.FOTOS;
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
 const erros = []; p.on('pageerror', (e) => erros.push(e.message));
-await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); localStorage.setItem('bi:exemplos', '1'); sessionStorage.setItem('bi:editor-local', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); });
+await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); localStorage.setItem('bi:dica-editor', '1'); localStorage.setItem('bi:exemplos', '1'); sessionStorage.setItem('bi:editor-local', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); });
 await p.goto('http://localhost:8090/'); await p.waitForTimeout(4500);
 await p.click('#nova'); await p.fill('.janela [name=nome]', 'Terreno do voo'); await p.click('.janela .modelo[data-m=vazio]'); await p.click('.janela .bt--sol');
 await p.waitForSelector('.ed-mapa'); await p.click('.ed-modos [data-modo=passeio]');

@@ -3,7 +3,7 @@
 // o service worker novo assume na hora (skipWaiting + claim) e apaga os caches antigos.
 const CACHE = 'bairroideal-' + (self.VERSAO || 'dev');
 const ESSENCIAIS = ['/', '/css/app.css', '/manifest.webmanifest', '/img/icone.svg', '/img/icone-192.png',
-  '/js/app.js', '/js/protecao.js', '/js/abertura.js', '/js/dados.js', '/js/ui.js', '/js/motor.js', '/js/pecas.js', '/js/modelos.js', '/js/termometro.js',
+  '/js/app.js', '/js/protecao.js', '/js/abertura.js', '/js/dados.js', '/js/ui.js', '/js/tutorial.js', '/js/motor.js', '/js/pecas.js', '/js/modelos.js', '/js/termometro.js',
   '/js/matematica.js', '/js/atualizar.js', '/js/instalar.js', '/js/compartilhar.js',
   '/js/telas/comum.js', '/js/telas/porta.js', '/js/telas/inicio.js', '/js/telas/editor.js', '/js/telas/historia.js', '/js/telas/comparar.js',
   '/js/telas/passeio.js', '/js/telas/privacidade.js', '/js/telas/entrar.js', '/js/telas/pessoas.js', '/vendor/three.module.min.js', '/vendor/qrcode.js'];

@@ -7,7 +7,7 @@ const srv = spawn(process.execPath, ['test/servidor.mjs', '8093'], { stdio: 'ign
 const b = await chromium.launch(); const ctx = await b.newContext(); const p = await ctx.newPage();
 const erros = []; p.on('pageerror', (e) => erros.push(e.message));
 try {
-  await p.addInitScript(() => { localStorage.setItem('bi:sw-teste', '1'); localStorage.setItem('bi:cookies', '1'); sessionStorage.setItem('bi:visitante', '1'); });
+  await p.addInitScript(() => { localStorage.setItem('bi:sw-teste', '1'); localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); sessionStorage.setItem('bi:visitante', '1'); });
   await p.goto(URL0 + '/'); await p.waitForSelector('.cartao-expo', { timeout: 15000 });
   await p.waitForFunction(() => navigator.serviceWorker.controller, null, { timeout: 15000 }).catch(() => {});
   await p.reload(); await p.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 15000 });

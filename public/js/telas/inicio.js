@@ -2,6 +2,7 @@
 import { el, esc, janela, confirmar, aviso, dataBonita, num } from '../ui.js';
 import { listar, abrir, excluir, duplicar, salvar, estado, ehMinha, aoMudar } from '../dados.js';
 import { MODELOS } from '../modelos.js';
+import { tutorial, TUTORIAL_INICIO } from '../tutorial.js';
 import { topo, chipTipo, corNota, notaTxt, novaMaquete, prepararParaSalvar } from './comum.js';
 
 export async function montar(app) {
@@ -11,7 +12,7 @@ export async function montar(app) {
     <section class="heroi"><div class="heroi-nuvens"></div>
       <h1>Olá${estado.usuario ? ', ' + esc(estado.usuario.nome.split(' ')[0]) : ''}! 👋</h1><p>Monte bairros, compare e conte a história de cada um.</p>
       <div class="heroi-nums" id="nums"></div>
-      <div class="heroi-bts"><button class="bt bt--sol bt--gde" id="nova2">＋ Nova maquete</button><a class="bt bt--gde" href="#/comparar">⚖️ Comparar</a><button class="bt bt--gde" id="tour2">▶ Apresentar todas</button><button class="bt bt--gde" id="expo2">📤 Compartilhar a exposição</button>${estado.usuario?.papel === 'admin' ? '<a class="bt bt--gde" href="#/pessoas">👥 Pessoas</a>' : ''}<button class="bt bt--gde esconde" id="inst2">📲 Instalar o app</button></div>
+      <div class="heroi-bts"><button class="bt bt--sol bt--gde" id="nova2">＋ Nova maquete</button><a class="bt bt--gde" href="#/comparar">⚖️ Comparar</a><button class="bt bt--gde" id="tour2">▶ Apresentar todas</button><button class="bt bt--gde" id="expo2">📤 Compartilhar a exposição</button>${estado.usuario?.papel === 'admin' ? '<a class="bt bt--gde" href="#/pessoas">👥 Pessoas</a>' : ''}<button class="bt bt--gde esconde" id="inst2">📲 Instalar o app</button><button class="bt bt--gde" id="ajuda2">❓ Como usar</button></div>
     </section>
     <h2 class="secao-t">🗺️ Minhas maquetes</h2>
     <div class="grade-m" id="minhas"><div class="vazio-lista" style="grid-column:1/-1">Carregando suas maquetes…</div></div>
@@ -53,6 +54,8 @@ export async function montar(app) {
   tela.querySelector('#expo2').onclick = async () => (await import('../compartilhar.js')).compartilharSite();
   ligarInstalar(tela.querySelector('#inst2'));
   await carregar();
+  tela.querySelector('#ajuda2').onclick = () => tutorial('inicio', TUTORIAL_INICIO, { forcar: true });
+  setTimeout(() => { if (tela.isConnected && !document.querySelector('.janela-fundo, .instalar')) tutorial('inicio', TUTORIAL_INICIO); }, 600); // 1ª vez: mostra sozinho
   // mudou algo em outro aparelho: a lista se atualiza sozinha (menos com o menu ⋯ aberto)
   let recarregar = null; const depois = () => { clearTimeout(recarregar); recarregar = setTimeout(() => { if (tela.isConnected && !document.querySelector('.menu-flut')) carregar(); }, 400); };
   const desligaNuvem = aoMudar((ev) => {

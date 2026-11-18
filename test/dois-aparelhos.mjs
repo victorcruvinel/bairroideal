@@ -7,7 +7,7 @@ const b = await chromium.launch(); const erros = [];
 // o 2º aparelho entra com a mesma conta (o servidor só manda outro código depois de 40 s, então usamos a sessão já aberta)
 async function aparelho(opcoes, sessao) {
   const ctx = await b.newContext(opcoes); const p = await ctx.newPage(); p.on('pageerror', (e) => erros.push(e.message));
-  await p.addInitScript((ss) => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); if (ss && !localStorage.getItem('bi:sessao')) { localStorage.setItem('bi:sessao', ss.s); localStorage.setItem('bi:usuario', ss.u); } }, sessao || null);
+  await p.addInitScript((ss) => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); localStorage.setItem('bi:dica-editor', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); if (ss && !localStorage.getItem('bi:sessao')) { localStorage.setItem('bi:sessao', ss.s); localStorage.setItem('bi:usuario', ss.u); } }, sessao || null);
   await p.goto(URL0 + '/');
   if (sessao) { await p.waitForSelector('.cartao-m[data-id]', { timeout: 15000 }); return { ctx, p }; } await p.waitForSelector('[data-p=entrar]', { timeout: 15000 });
   await p.click('[data-p=entrar]'); await p.fill('[name=email]', EMAIL); await p.click('.entrar-cx .bt--sol'); await p.waitForSelector('.codigo');

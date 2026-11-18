@@ -4,7 +4,7 @@ const { chromium, devices } = createRequire(import.meta.url)(process.env.PW || '
 const FOTOS = process.env.FOTOS;
 const b = await chromium.launch(); const ctx = await b.newContext({ ...devices['iPad Pro 11 landscape'] }); const p = await ctx.newPage();
 const erros = []; p.on('pageerror', (e) => erros.push(e.message));
-await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); sessionStorage.setItem('bi:editor-local', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); });
+await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); localStorage.setItem('bi:dica-editor', '1'); sessionStorage.setItem('bi:editor-local', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); });
 await p.goto('http://localhost:8090/'); await p.waitForSelector('.cartao-m[data-id]'); await p.locator('.cartao-m[data-id]').first().tap(); await p.waitForSelector('.ed-mapa'); await p.waitForTimeout(900);
 const cdp = await ctx.newCDPSession(p); const toque = (t, pts) => cdp.send('Input.dispatchTouchEvent', { type: t, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
 const z0 = await p.evaluate(() => window.__zoom()), n0 = await p.evaluate(() => window.__pecas());
@@ -22,10 +22,22 @@ const t = await p.evaluate(() => { for (let y = 6; y < 17; y++) for (let x = 0; 
 assert.ok(await p.evaluate(() => document.querySelector('.ed').classList.contains('ferr-tocar')), 'abre no modo Tocar');
 await p.touchscreen.tap(t[0], t[1]); await p.waitForTimeout(400);
 assert.equal(await p.evaluate(() => window.__pecas()), n0, 'no modo Tocar o toque não coloca peça');
-// escolhendo uma peça (categoria e peça com toques rápidos), um dedo só coloca
+// escolhendo uma peça: deslizar o dedo NÃO espalha casinhas; aparece a peça transparente e só entra no ✓
 await p.tap('[data-cat=casas]'); await p.tap('.pc[data-id=casa]'); await p.waitForTimeout(200);
-await p.touchscreen.tap(t[0], t[1]); await p.waitForTimeout(400);
-assert.equal(await p.evaluate(() => window.__pecas()), n0 + 1, 'com peça escolhida, um toque coloca a peça');
+await toque('touchStart', [[t[0], t[1] + 56]]); for (let i = 1; i <= 12; i++) { await toque('touchMove', [[t[0] + i * 9, t[1] + 56 + i * 4]]); await p.waitForTimeout(16); } await toque('touchEnd', []); await p.waitForTimeout(400);
+assert.equal(await p.evaluate(() => window.__pecas()), n0, 'deslizar com a casinha escolhida não coloca nada');
+assert.ok(await p.isVisible('.ed-confirma'), 'aparecem os botões ✕ 🔄 ✓');
+if (FOTOS) await p.screenshot({ path: FOTOS + '/90-peca-transparente.png' });
+await p.tap('.ed-confirma [data-c=ok]'); await p.waitForTimeout(400);
+assert.equal(await p.evaluate(() => window.__pecas()), n0 + 1, 'no ✓ a casa entra (uma só)');
+assert.ok(!(await p.isVisible('.ed-confirma')), 'botões somem depois de colocar');
+// em cima de outra peça: pergunta (substituir / pôr ao lado)
+await p.touchscreen.tap(t[0] + 12 * 9, t[1] + 56 + 12 * 4); await p.waitForTimeout(400); // mesmo lugar (a peça fica 56 px acima do dedo)
+assert.match(await p.textContent('.ed-confirma [data-c=ok]'), /Ocupado/);
+await p.tap('.ed-confirma [data-c=ok]'); await p.waitForSelector('.janela-sair');
+if (FOTOS) await p.screenshot({ path: FOTOS + '/91-ja-tem-peca.png' });
+await p.locator('.janela-sair .bt', { hasText: 'Pôr ao lado' }).tap(); await p.waitForTimeout(500);
+assert.equal(await p.evaluate(() => window.__pecas()), n0 + 2, 'pôs ao lado');
 if (FOTOS) { await p.tap('.ed-f[data-f=terreno]'); await p.waitForTimeout(600); await p.screenshot({ path: FOTOS + '/51-terreno-ipad.png' }); }
 assert.deepEqual(erros, []); console.log(`✔ pinça no iPad: zoom ${z0.toFixed(2)} → ${z1.toFixed(2)} → ${z2.toFixed(2)}, sem colocar peça sem querer`);
 await b.close();

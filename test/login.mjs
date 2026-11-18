@@ -6,7 +6,7 @@ const srv = spawn(process.execPath, ['test/servidor.mjs', '8091', '--planilha'],
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
 const erros = []; p.on('pageerror', (e) => erros.push(e.message));
 try {
-  await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); });
+  await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); localStorage.setItem('bi:dica-editor', '1'); });
   await p.goto(URL0 + '/'); await p.waitForTimeout(4500);
   assert.equal(await p.evaluate(() => location.hash), '#/porta', 'sem login aparece a porta de entrada');
   await p.click('[data-p=entrar]'); await p.waitForSelector('[name=email]');

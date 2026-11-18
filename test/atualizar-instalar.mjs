@@ -7,7 +7,7 @@ const b = await chromium.launch();
 try {
   // 1) versão nova publicada -> o app percebe, salva o que está aberto e recarrega
   const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
-  await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:dica-editor', '1'); sessionStorage.setItem('bi:editor-local', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); window.__carregou = (window.__carregou || 0) + 1; });
+  await p.addInitScript(() => { localStorage.setItem('bi:cookies', '1'); localStorage.setItem('bi:tutorial-inicio', '1'); localStorage.setItem('bi:tutorial-editor', '1'); localStorage.setItem('bi:dica-editor', '1'); sessionStorage.setItem('bi:editor-local', '1'); sessionStorage.setItem('bi:instalar-visto', '1'); window.__carregou = (window.__carregou || 0) + 1; });
   await p.goto(URL0 + '/'); await p.waitForSelector('.cartao-m[data-id]'); await p.locator('.cartao-m[data-id]').first().click(); await p.waitForSelector('.ed-mapa');
   await p.click('[data-aba=sobre]'); await p.fill('.ed-aba-c [name=nome]', 'Nome antes da atualização');
   await fetch(URL0 + '/__mudar-versao');
@@ -19,7 +19,7 @@ try {
   console.log('✔ versão nova: recarregou sozinho e não perdeu o que estava sendo editado');
   // 2) iPhone: convite para instalar com o passo a passo
   const ctx = await b.newContext({ ...devices['iPhone 15'] }); const c = await ctx.newPage();
-  await c.addInitScript(() => localStorage.setItem('bi:cookies', '1'));
+  await c.addInitScript(() => (localStorage.setItem('bi:cookies', '1'), localStorage.setItem('bi:tutorial-inicio', '1'), localStorage.setItem('bi:tutorial-editor', '1')));
   await c.goto(URL0 + '/'); await c.waitForSelector('.instalar', { timeout: 12000 });
   if (FOTOS) await c.screenshot({ path: FOTOS + '/48-instalar-iphone.png' });
   await c.tap('.instalar [data-i=sim]'); await c.waitForSelector('.passos-ios');

@@ -88,10 +88,16 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Voo (passeio.js): só por cima de quadradinhos que existem (`sobreMaquete`, folga 0,3; desliza na beira, aviso "beira da maquete"); teto de **16** de altura (aviso "Altura máxima"); ao pousar em prédio/água/fora vai para o lugar livre mais perto (`lugarParaPousar`).
 - Teste novo: `node test/voo.mjs` (servidor 8090): terreno vazio abre no passeio; voa 6 s para fora e continua dentro; sobe até o teto; pousa e anda.
 
+## Rodada 13 (18/11): colocar peça como jogo de construção + tutorial
+- **Colocar peça (obj)**: tocar/arrastar NÃO coloca mais sozinho. Aparece a peça transparente (`S.mira`, `fantasmaEm`), no toque 56 px acima do dedo (`miraEm`). Toque: ao soltar aparece a barrinha `.ed-confirma` (✕ / 🔄 / ✓ Colocar); só coloca no ✓ (Enter também). Mouse: a peça segue o mouse e soltar coloca uma (`tentarColocar`). Chão (grama, rua…) continua pintando ao arrastar.
+- **Lugar ocupado / fora do terreno / água**: janela "Já tem uma peça aqui" com Cancelar · ↔️ Pôr ao lado (`lugarLivrePerto`, até 14 quadradinhos) · 🔁 Substituir (só quando é peça em cima).
+- **Tutorial** (`js/tutorial.js`): passo a passo com fundo escuro, destaque amarelo no botão e balão (Pular / Voltar / Próximo, Esc e setas). `TUTORIAL_INICIO` (8 passos) e `TUTORIAL_EDITOR` (12 passos); aparecem sozinhos 1 vez por aparelho (`bi:tutorial-inicio`, `bi:tutorial-editor`); botões **❓ Como usar** (início) e **❓** (coluna da direita do editor) abrem de novo. Passos cujo botão não está na tela são pulados. A dica antiga `bi:dica-editor` saiu.
+- Testes: todos os testes de navegador marcam os tutoriais como vistos no `addInitScript`. Novo: `node test/tutorial.mjs` (8090). `pinca.mjs` agora testa deslizar sem colocar, o ✓, e "Pôr ao lado".
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 12 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo).
+Última publicação: Rodada 13 (na `main` e no branch de trabalho). Apps Script já atualizado pelo Victor. Todos os testes passaram (npm test 25, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker, dois-aparelhos, voo, tutorial).
 1. Conferir com o Victor se o build do Cloudflare de 3235b58 deu "success" (nesta sessão a rede bloqueava o site e não havia ferramenta para ver os checks).
-2. Perguntar se o carregando do 3D voltou a travar (se sim, pedir print e o que estava fazendo). Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
+2. Perguntar o que ele achou do jeito novo de colocar peça (✓) e do tutorial. Perguntar se o carregando do 3D voltou a travar (se sim, pedir print e o que estava fazendo). Conferir com ele no site de verdade: Pessoas sem a conta dele (aviso "Sua conta é invisível"); selo "Sincronizado" no topo; editar no iPad + Salvar e ver chegar no iPhone.
 3. Quando ele convidar a professora: ver se o e-mail chegou sem o nome dele e se ela vê as maquetes de exemplo como "da equipe" e consegue editar.
 4. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
 5. Lembrete: mudanças no `apps-script/Codigo.gs` só valem depois que o Victor cola o código no Apps Script e implanta nova versão (README "Quando mudar o Codigo.gs"). Mandar o arquivo para ele (também como .txt).
@@ -103,7 +109,7 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 
 ## Testes
 - `npm test` (Node puro: Codigo.gs com Google falso, Worker, termômetro, matemática, CSS).
-- Playwright (Chromium já instalado no ambiente; use `PW=$(npm root -g)/playwright`). Precisam de `node test/servidor.mjs 8090` rodando: `interacoes.mjs`, `passeio-toque.mjs`, `pinca.mjs`, `voo.mjs`.
+- Playwright (Chromium já instalado no ambiente; use `PW=$(npm root -g)/playwright`). Precisam de `node test/servidor.mjs 8090` rodando: `interacoes.mjs`, `passeio-toque.mjs`, `pinca.mjs`, `voo.mjs`, `tutorial.mjs`. Cuidado: `pkill -f "servidor.mjs 809"` também derruba o 8090.
 - Sobem o próprio servidor: `login.mjs` (8091, com planilha falsa), `atualizar-instalar.mjs` (8092), `service-worker.mjs` (8093), `dois-aparelhos.mjs` (8094, planilha falsa).
 - Rodar SEMPRE antes de publicar.
 

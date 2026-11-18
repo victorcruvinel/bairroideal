@@ -757,3 +757,32 @@ button, a, .pc, .ed-f, input, label { touch-action: manipulation; }
 .convite .erro-msg:empty { display: none; }
 .dev-aviso { margin: 0 0 14px; text-align: left; }
 @media (max-width: 600px) { .papeis { grid-template-columns: 1fr; } }
+
+/* =================================================================== Rodada 13: colocar peça com confirmação */
+.ed-confirma { position: absolute; z-index: 7; transform: translate(-50%, 0); display: flex; gap: 6px; padding: 6px; background: var(--tinta); border-radius: 18px; box-shadow: 0 10px 26px rgba(0, 0, 0, .3); animation: selSobe .18s cubic-bezier(.3, 1.4, .5, 1); }
+.ed-confirma::before { content: ''; position: absolute; left: 50%; top: -7px; margin-left: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--tinta); }
+.ed-confirma button { min-width: 46px; height: 46px; border-radius: 13px; color: #fff; font-size: 20px; font-weight: 900; display: grid; place-items: center; background: rgba(255, 255, 255, .1); }
+.ed-confirma button:active { transform: scale(.92); }
+.ed-confirma .ed-confirma-ok { padding: 0 16px; font-family: var(--titulo); font-size: 17px; font-weight: 600; background: var(--sol); color: var(--tinta); box-shadow: 0 3px 0 var(--sol2); }
+.ed-confirma .ed-confirma-ok.ruim { background: var(--coral); color: #fff; box-shadow: 0 3px 0 var(--coral2); }
+
+/* =================================================================== tutorial (passo a passo) */
+.tut { position: fixed; inset: 0; z-index: 120; opacity: 0; transition: opacity .25s; }
+.tut.on { opacity: 1; } .tut.sai { opacity: 0; }
+.tut-furo { position: fixed; border-radius: 18px; box-shadow: 0 0 0 9999px rgba(24, 28, 38, .62); transition: left .3s, top .3s, width .3s, height .3s; pointer-events: none; outline: 3px solid var(--sol); outline-offset: 2px; animation: tutBrilha 1.6s ease-in-out infinite; }
+.tut-furo.sem { left: 50% !important; top: 50% !important; width: 0 !important; height: 0 !important; outline: 0; }
+@keyframes tutBrilha { 50% { outline-color: rgba(255, 201, 60, .35); } }
+.tut-balao { position: fixed; width: min(360px, calc(100vw - 16px)); background: #fff; border-radius: 24px; padding: 16px 18px 14px; box-shadow: 0 8px 0 rgba(43, 42, 51, .08), 0 30px 60px -20px rgba(0, 0, 0, .5); transition: left .3s, top .3s; }
+.tut.meio .tut-balao { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); }
+.tut-balao.entra { animation: tutEntra .28s cubic-bezier(.3, 1.4, .5, 1); }
+.tut.meio .tut-balao.entra { animation: none; }
+@keyframes tutEntra { from { opacity: .3; scale: .94; } }
+.tut-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.tut-n { font-size: 12px; font-weight: 900; color: var(--apagado); }
+.tut-pular { font-size: 13px; font-weight: 800; color: var(--tinta2); padding: 4px 8px; border-radius: 10px; } .tut-pular:hover { background: var(--papel); }
+.tut-emoji { font-size: 34px; line-height: 1.1; }
+.tut-t { font-size: 21px; margin: 4px 0 6px; }
+.tut-p { font-size: 15px; font-weight: 600; color: #4b463c; line-height: 1.5; } .tut-p small { color: var(--tinta2); font-size: 13px; }
+.tut-pontos { display: flex; gap: 5px; justify-content: center; margin: 12px 0 8px; flex-wrap: wrap; }
+.tut-pontos i { width: 7px; height: 7px; border-radius: 50%; background: #e3dccd; } .tut-pontos i.on { background: var(--verde); width: 20px; border-radius: 4px; }
+.tut-bts { display: flex; justify-content: space-between; gap: 8px; } .tut-bts .bt { flex: 1; justify-content: center; }
