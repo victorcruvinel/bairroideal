@@ -602,6 +602,11 @@ html[data-copiar="sim"] :is(.texto, .lousa, .hist-txt, .probs, .dicas, .cmp-tab)
 .ed-seta-mais:active, .ed-seta-menos:active { transform: scale(.92); }
 @keyframes setaPulsa { 0%, 100% { box-shadow: 0 5px 0 var(--sol2), 0 0 0 0 rgba(255,201,60,.55); } 50% { box-shadow: 0 5px 0 var(--sol2), 0 0 0 10px rgba(255,201,60,0); } }
 .modo-terreno .ed-sel { display: none; }
+/* iPad em pé e telas médias: medidas + botões em cima, dica embaixo (sem coluna fininha) */
+@media (min-width: 761px) and (max-width: 1180px) {
+  .modo-terreno .ed-terreno { grid-template-columns: 1fr auto; grid-template-areas: 'med bts' 'dica dica'; gap: 10px 14px; }
+  .ter-medidas { grid-area: med; } .ter-dica { grid-area: dica; } .ter-bts { grid-area: bts; }
+}
 @media (max-width: 760px) {
   .modo-terreno .ed-terreno { grid-template-columns: 1fr; gap: 8px; } .ter-bts { flex-direction: row; } .ter-bts .bt { flex: 1; padding: 8px 4px; font-size: 12.5px; }
   .ter-dica { font-size: 12.5px; padding: 7px 10px; } .ed-seta-mais { width: 48px; height: 48px; } .ed-seta-mais i { font-size: 22px; }
