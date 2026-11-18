@@ -15,14 +15,11 @@ export async function montar(app) {
     </section>
     <h2 class="secao-t">🗺️ Minhas maquetes</h2>
     <div class="grade-m" id="minhas"><div class="vazio-lista" style="grid-column:1/-1">Carregando suas maquetes…</div></div>
-    <h2 class="secao-t">🧩 Começar com um modelo pronto</h2>
-    <div class="modelos">${MODELOS.map((x) => `<button class="modelo" data-m="${x.id}"><span class="em">${x.emoji}</span><span><b>${x.nome}</b><small>${x.desc}</small></span></button>`).join('')}</div>
     <div id="equipe"></div>
     <div class="dica-cx" style="margin-top:22px">💡 Dica: use <b>Duplicar</b> numa maquete para transformar o bairro ideal no carente (ou o contrário) e depois <b>Comparar</b> os dois lado a lado.</div>
     <div class="rodape">Bairro Ideal · por Elaine Freitas Muniz · <a href="#/privacidade">Privacidade e cookies</a></div>
   </div></div>`);
   app.append(tela);
-  tela.querySelectorAll('.modelo').forEach((b) => { b.onclick = async () => { const m = await novaMaquete(b.dataset.m); if (m) location.hash = '#/m/' + m.id; }; });
 
   const cartao = (m, minha) => `<div class="cartao-m" role="button" tabindex="0" data-id="${m.id}">
       <div class="th">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<span class="vazio">🗺️</span>'}</div>
@@ -67,20 +64,25 @@ export async function montar(app) {
   async function menu(botao) {
     document.querySelector('.menu-flut')?.remove(); document.querySelector('.menu-fundo')?.remove();
     const id = botao.dataset.menu, resumo = [...lista.minhas, ...lista.equipe].find((m) => m.id === id); const minha = ehMinha(resumo);
-    const r = botao.getBoundingClientRect(), gaveta = innerWidth <= 600;
-    const mn = el(`<div class="menu-flut ${gaveta ? 'gaveta' : ''}" role="menu"><h4>${esc(resumo.nome)}</h4>
+    // o menu fica "preso" embaixo do botão e rola junto com a tela; se não couber, a tela desce até ele aparecer inteiro
+    const larg = tela.querySelector('.larg'), base = larg.getBoundingClientRect(), r = botao.getBoundingClientRect();
+    const mn = el(`<div class="menu-flut menu-anc" role="menu">
       <button data-a="abrir">✏️ ${minha ? 'Abrir e editar' : 'Abrir'}</button><button data-a="historia">📖 Apresentar história</button><button data-a="passeio">🚶 Passear dentro</button>
       <button data-a="compartilhar">📤 Compartilhar (WhatsApp / QR)</button><button data-a="comparar">⚖️ Comparar com…</button><button data-a="duplicar">📄 Duplicar</button>
       ${minha ? '<button data-a="renomear">🏷️ Renomear</button><button data-a="excluir" class="perigo">🗑️ Apagar</button>' : ''}</div>`);
-    const fundo = gaveta ? el('<div class="menu-fundo"></div>') : null; if (fundo) document.body.append(fundo);
-    document.body.append(mn);
-    if (!gaveta) { // embaixo do botão; se não couber, abre para cima; nunca passa da tela
-      const h = mn.offsetHeight, w = mn.offsetWidth; let top = r.bottom + 6;
-      if (top + h > innerHeight - 8) { top = r.top - h - 6; mn.classList.add('pra-cima'); }
-      top = Math.max(8, Math.min(top, innerHeight - h - 8));
-      mn.style.top = top + 'px'; mn.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + 'px';
+    larg.append(mn);
+    const w = mn.offsetWidth, esq = Math.max(8 - base.left, Math.min(r.right - w - base.left, innerWidth - w - 8 - base.left));
+    mn.style.top = (r.bottom - base.top + 6) + 'px'; mn.style.left = esq + 'px';
+    // quanto falta para o menu aparecer inteiro; se a página acaba antes, ganha um espaço extra embaixo (some ao fechar)
+    let espaco = null;
+    const topoLarg = larg.getBoundingClientRect().top - tela.getBoundingClientRect().top + tela.scrollTop;
+    const precisa = topoLarg + mn.offsetTop + mn.offsetHeight + 14 - (tela.scrollTop + tela.clientHeight);
+    if (precisa > 0) {
+      const sobra = tela.scrollHeight - (tela.scrollTop + tela.clientHeight);
+      if (sobra < precisa) { espaco = el(`<div class="menu-espaco" style="height:${Math.ceil(precisa - sobra)}px"></div>`); larg.append(espaco); }
+      tela.scrollBy({ top: precisa, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     }
-    const fechar = () => { mn.remove(); fundo?.remove(); document.removeEventListener('pointerdown', fecha); };
+    const fechar = () => { mn.remove(); espaco?.remove(); document.removeEventListener('pointerdown', fecha); };
     const fecha = (ev) => { if (!mn.contains(ev.target)) fechar(); };
     setTimeout(() => document.addEventListener('pointerdown', fecha));
     mn.onclick = async (ev) => {

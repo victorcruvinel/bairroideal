@@ -738,3 +738,6 @@ button, a, .pc, .ed-f, input, label { touch-action: manipulation; }
 .menu-flut h4 { display: none; } .menu-flut.gaveta h4 { display: block; }
 .janela-sair { max-width: 580px; }
 @media (min-width: 561px) { .janela-sair .janela-b { flex-wrap: nowrap; } .janela-sair .janela-b .bt { white-space: nowrap; } .janela-sair .janela-b .bt--perigo-leve { margin-right: auto; } }
+/* menu ⋯ preso ao cartão (rola junto com a tela) */
+.larg { position: relative; }
+.menu-flut.menu-anc { position: absolute; z-index: 20; max-height: none; overflow: visible; width: max-content; max-width: calc(100vw - 16px); }

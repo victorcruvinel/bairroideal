@@ -65,8 +65,12 @@ Pedido original: app para a professora dele montar **maquetes de bairros** (idea
 - Desfazer/refazer: ícones SVG (seta curva) num botão duplo `.ed-hist`; no celular aparecem os dois. Compartilhar no celular foi para a aba Sobre (📊).
 - Menu ⋯ do cartão (inicio.js): mede a altura, abre para cima se não couber, nunca sai da tela; no celular (≤600) vira gaveta de baixo com fundo escuro.
 
+## Rodada 9 (18/11): tela inicial
+- Seção "Começar com um modelo pronto" saiu da tela inicial: os modelos aparecem na janela de **Nova maquete**.
+- Menu ⋯ do cartão: fica preso embaixo do botão (absoluto dentro de `.larg`, rola junto com a `.tela`); se não couber, a `.tela` desce sozinha até ele aparecer inteiro (se a página acabar antes, ganha um espaço extra `.menu-espaco` que some ao fechar). Medida com `offsetHeight` (a animação começa menor).
+
 ## PENDENTE (próxima sessão começa aqui)
-Última publicação: Rodada 8. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
+Última publicação: Rodada 9. Todos os testes passaram (npm test 24, interacoes, pinca, passeio-toque, login, atualizar-instalar, service-worker).
 1. Conferir o build do Cloudflare do último commit (a rede desta sessão bloqueava o site; pedir ao Victor olhar no painel).
 2. No print do Victor (iPad) a logo ainda era a antiga: conferir se a versão nova chegou (fechar e abrir o app; o ícone instalado pode exigir reinstalar).
 3. (Opcional) O e-mail de contato da política de privacidade ainda é hello@victorcruvinel.dev.
